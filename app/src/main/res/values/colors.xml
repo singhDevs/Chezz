@@ -11,4 +11,15 @@
     <color name="light_square">#f1cc98</color>
     <color name="text_dark_square">#5D3A21</color>
     <color name="text_light_square">#F2D0A1</color>
+    <color name="cancel_btn_color">#5F1B1B</color>
+    <color name="golden">#FFD700</color>
+    <color name="timer_text">#CBC7C4</color>
+    <color name="timer_container1">#45413D</color>
+    <color name="timer_container2">#79716A</color>
+    <color name="timer_container_border">#696560</color>
+    <color name="game_background">#1B1918</color>
+    <color name="player_name_color">#A9A8A5</color>
+    <color name="replay_text">#53514F</color>
+    <color name="game_buttons_color">#716F6E</color>
+    <color name="draw_button_color">#2A2827</color>
 </resources>

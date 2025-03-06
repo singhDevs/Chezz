@@ -1,4 +1,4 @@
-package com.singhDevs.chezz.ComposeUtils
+package com.singhDevs.chezz.composeUtils
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

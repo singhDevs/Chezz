@@ -1,12 +1,17 @@
-package com.singhDevs.chezz
+package com.singhDevs.chezz.utils
 
+import com.github.bhlangonijr.chesslib.PieceType
+import com.github.bhlangonijr.chesslib.Side
 import com.singhDevs.chezz.websocket.MessageActions
 import com.singhDevs.chezz.websocket.WebSocketClient
 import com.github.bhlangonijr.chesslib.Square
+import com.singhDevs.chezz.R
+import com.singhDevs.chezz.network.User
 
 object Constants {
     lateinit var webSocketClient: WebSocketClient
-    val squareMapping = mutableMapOf(
+    lateinit var user: User
+    val charToSquareMapping = mutableMapOf(
         "a1" to Square.A1,
         "a2" to Square.A2,
         "a3" to Square.A3,
@@ -140,7 +145,39 @@ object Constants {
     )
     val alphabets = "abcdefghijklmnopqrstuvwxyz"
 
+    val colorToSideMapping = mutableMapOf(
+        'w' to Side.WHITE,
+        'b' to Side.BLACK
+    )
+
+    val pieceTypeToChar = mutableMapOf(
+        PieceType.PAWN to "p",
+        PieceType.KNIGHT to "n",
+        PieceType.BISHOP to "b",
+        PieceType.ROOK to "r",
+        PieceType.QUEEN to "q",
+        PieceType.KING to "k"
+    )
+
+    val blackPieceToSymbol = mapOf(
+        'p' to R.drawable.ic_wp,
+        'n' to R.drawable.ic_wn,
+        'b' to R.drawable.ic_wb,
+        'r' to R.drawable.ic_wr,
+        'q' to R.drawable.ic_wq,
+        'k' to R.drawable.ic_wk
+    )
+
+    val whitePieceToSymbol = mapOf(
+        'p' to R.drawable.ic_bp,
+        'n' to R.drawable.ic_bn,
+        'b' to R.drawable.ic_bb,
+        'r' to R.drawable.ic_br,
+        'q' to R.drawable.ic_bq,
+        'k' to R.drawable.ic_bk
+    )
+
     fun initClient(messageActions: MessageActions){
-        this.webSocketClient = WebSocketClient(messageActions)
+        webSocketClient = WebSocketClient(messageActions)
     }
 }

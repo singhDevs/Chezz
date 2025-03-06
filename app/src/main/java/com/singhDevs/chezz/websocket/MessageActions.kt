@@ -4,7 +4,9 @@ import com.singhDevs.chezz.models.Move
 import com.singhDevs.chezz.models.chessboard.Board
 
 interface MessageActions {
-    fun onGameStart(color: Char)
-    fun onOpponentMoveMade(board: Board, move: Move)
-    fun onMoveMade(board: Board, move: com.github.bhlangonijr.chesslib.move.Move)
+    fun onInfoReceived(onlineUsers: Int)
+    fun onGameStart(color: Char, opponent: String)
+    fun onMoveMade(board: Board, move: Move, piece: Char,result: Char? = null, cause: String? = null, whiteTime: Long, blackTime: Long)
+    fun onGameOver(result: Char?, cause: String?, move: Move)
+    fun onDrawRequested()
 }
