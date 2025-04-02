@@ -1,3 +1,5 @@
+<img src="https://github.com/user-attachments/assets/6641ba14-3075-47b7-863e-1789771b637b" width="100" height="100" style="border-radius: 50%;">
+
 # Chezz
 A real-time multiplayer Chess game android app built using web-sockets.
 
