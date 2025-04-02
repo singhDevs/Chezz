@@ -42,17 +42,37 @@ Chezz integrates the glicko2-ts library to manage player ratings in Rated matche
 For more details, you can explore the [glicko2-ts](https://github.com/singhDevs/glicko2-ts) repository.
 
 ## Screenshots
+### Home
 ![home](https://github.com/user-attachments/assets/62f1973d-a708-4d12-8fe9-35c4d8e3dcf5)
 
+<br/><br/>
+### Rated or Casual options
+![rated or casual](https://github.com/user-attachments/assets/346b7147-5615-447e-a45c-4601c175f66b)
 
-![rated or casual](https://github.com/user-attachments/assets/346b7147-5615-447e-a45c-4601c175f66b)&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;![time modes](https://github.com/user-attachments/assets/feec2830-5480-4d50-8897-4bffa447271c)
+<br/><br/>
+### Time Control options
+![time modes](https://github.com/user-attachments/assets/feec2830-5480-4d50-8897-4bffa447271c)
 
+<br/><br/>
+### Matchmaking screen
+![waiting](https://github.com/user-attachments/assets/b038f355-9ce1-4fee-bdcd-6dba7709182c)
 
+<br/><br/>
+### Game begins
+![game start](https://github.com/user-attachments/assets/7b14dcf1-0b80-42b7-bccc-ffbfad97032b)
 
-![waiting](https://github.com/user-attachments/assets/b038f355-9ce1-4fee-bdcd-6dba7709182c)&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;![game start](https://github.com/user-attachments/assets/7b14dcf1-0b80-42b7-bccc-ffbfad97032b)
+<br/><br/>
+### Resignation dialog
+![resign](https://github.com/user-attachments/assets/5bc82c09-127e-440f-9bee-720007bb6feb)
 
+<br/><br/>
+### Draw option
+![draw](https://github.com/user-attachments/assets/4d84dfb0-921e-45d7-a667-dabe70512601)
 
-![resign](https://github.com/user-attachments/assets/5bc82c09-127e-440f-9bee-720007bb6feb)&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;![draw](https://github.com/user-attachments/assets/4d84dfb0-921e-45d7-a667-dabe70512601)
+<br/><br/>
+### Game Over
+![game over](https://github.com/user-attachments/assets/acd4db93-fc52-40d8-8420-f10e55c68b01)
 
-
-![game over](https://github.com/user-attachments/assets/acd4db93-fc52-40d8-8420-f10e55c68b01)&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;![export pgn](https://github.com/user-attachments/assets/3554d12f-06cb-421f-8b92-e0b35af3a20b)
+<br/><br/>
+### Exporting PGN
+![export pgn](https://github.com/user-attachments/assets/3554d12f-06cb-421f-8b92-e0b35af3a20b)
