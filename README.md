@@ -54,6 +54,10 @@ For more details, you can explore the [glicko2-ts](https://github.com/singhDevs/
 ![time modes](https://github.com/user-attachments/assets/feec2830-5480-4d50-8897-4bffa447271c)
 
 <br/><br/>
+### Rating History Chart
+![Ratings Chart](https://github.com/user-attachments/assets/f07f16db-24f4-4f9c-94f6-0c8909b3fcfd)
+
+<br/><br/>
 ### Matchmaking screen
 ![waiting](https://github.com/user-attachments/assets/b038f355-9ce1-4fee-bdcd-6dba7709182c)
 
@@ -71,7 +75,7 @@ For more details, you can explore the [glicko2-ts](https://github.com/singhDevs/
 
 <br/><br/>
 ### Game Over
-![game over](https://github.com/user-attachments/assets/acd4db93-fc52-40d8-8420-f10e55c68b01)
+![Game Over](https://github.com/user-attachments/assets/7212fd39-6b77-4707-bd45-d52b239dd27b)
 
 <br/><br/>
 ### Exporting PGN
