@@ -1,11 +1,14 @@
 package com.singhDevs.chezz.activities
 
+import android.content.Intent
+import android.media.Rating
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,8 +24,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -31,9 +32,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,23 +47,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.bhlangonijr.chesslib.Square
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import com.github.bhlangonijr.chesslib.Side
 import com.github.bhlangonijr.chesslib.move.Move
 import com.google.gson.Gson
+import com.singhDevs.chezz.ChezzApplication
 import com.singhDevs.chezz.R
+import com.singhDevs.chezz.UserRatingsOuterClass.UserRatings
 import com.singhDevs.chezz.components.DrawDialog
 import com.singhDevs.chezz.components.LoadingDialog
+import com.singhDevs.chezz.components.MovesListComposable
 import com.singhDevs.chezz.components.PlayerDisplayTab
 import com.singhDevs.chezz.components.PopupDialog
 import com.singhDevs.chezz.components.TimerComposable
+import com.singhDevs.chezz.di.RatingsRepository
+import com.singhDevs.chezz.models.GameMode
+import com.singhDevs.chezz.models.GameOverResponse
+import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.models.Message
 import com.singhDevs.chezz.models.MessageTypes
+import com.singhDevs.chezz.models.ResultType
 import com.singhDevs.chezz.models.chessboard.Board
-import com.singhDevs.chezz.network.AuthService
+import com.singhDevs.chezz.network.GameService
 import com.singhDevs.chezz.network.JoinGameRequest
 import com.singhDevs.chezz.network.RetrofitClient
 import com.singhDevs.chezz.network.User
@@ -70,7 +80,11 @@ import com.singhDevs.chezz.screens.ChessBoard
 import com.singhDevs.chezz.ui.theme.ChezzTheme
 import com.singhDevs.chezz.utils.BasicUtils
 import com.singhDevs.chezz.utils.Constants
+import com.singhDevs.chezz.viewmodels.AuthViewModel
 import com.singhDevs.chezz.viewmodels.ChessBoardViewModel
+import com.singhDevs.chezz.viewmodels.ChessViewModelFactory
+import com.singhDevs.chezz.viewmodels.HomeActivityViewModel
+import com.singhDevs.chezz.viewmodels.HomeViewModelFactory
 import com.singhDevs.chezz.websocket.MessageActions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -84,23 +98,31 @@ class GameActivity : ComponentActivity(), MessageActions {
         Constants.initClient(this)
     }
 
-    private var gameTime: Long = 5 * 60 * 1000
-    private lateinit var authService: AuthService
-    private val chessBoardViewModel = ChessBoardViewModel(5 * 60 * 1000)
+    private lateinit var ratingsRepository: RatingsRepository
+    private lateinit var chessBoardViewModel: ChessBoardViewModel
 
-    private var whiteTime by mutableLongStateOf(gameTime)
-    private var blackTime by mutableLongStateOf(gameTime)
+    private lateinit var authViewModel: AuthViewModel
+
+    private lateinit var gameService: GameService
+
+    private var whiteTime by mutableLongStateOf(5 * 60 * 1000)
+    private var blackTime by mutableLongStateOf(5 * 60 * 1000)
 
     private var deviceBoard by mutableStateOf(com.github.bhlangonijr.chesslib.Board())
+    private var turn by mutableStateOf(Side.WHITE)
     private var board by mutableStateOf(Board())
-    private var result: Char? by mutableStateOf(null)
+    private var result: ResultType? by mutableStateOf(null)
+    private var gameOverResponse by mutableStateOf<GameOverResponse?>(null)
     private var onlineUsers: Int? by mutableStateOf(null)
     private var cause: String? by mutableStateOf(null)
     private var color by mutableStateOf('a')
     private var showResignDialog by mutableStateOf(false)
     private var showDrawDialog by mutableStateOf(false)
     private var opponentColor by mutableStateOf('a')
-    private var opponent by mutableStateOf("")
+    private var opponent by mutableStateOf<com.singhDevs.chezz.models.User?>(null)
+    private var gameDuration by mutableIntStateOf(0)
+    private var gameType by mutableStateOf(GameType.BLITZ)
+    private var gameMode by mutableStateOf(GameMode.RATED)
     private var legalMoves by mutableStateOf<MutableList<Move>?>(null)
     private val movesList = mutableStateListOf<String>()
 
@@ -108,25 +130,46 @@ class GameActivity : ComponentActivity(), MessageActions {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        ratingsRepository = RatingsRepository(applicationContext)
+        chessBoardViewModel = ViewModelProvider(
+            this,
+            ChessViewModelFactory(ratingsRepository)
+        )[ChessBoardViewModel::class.java]
+
+        authViewModel = (application as ChezzApplication).authViewModel
+
         val token = intent.getStringExtra("token")
         val user = intent.getParcelableExtra<User>("user")
-        this.gameTime = intent.getLongExtra("gameTime", 5 * 60 * 1000)
+        val duration = intent.getIntExtra("duration", 5 * 60 * 1000)
+        gameType = intent.getSerializableExtra("type") as GameType
+        gameMode = intent.getSerializableExtra("mode") as GameMode
+
+        lifecycleScope.launch {
+            chessBoardViewModel.initialize(duration.toLong())
+        }
 
         if (token == null || user == null) {
             Log.e(TAG, "Token or User is null!")
             finish()
         }
 
-        authService = RetrofitClient.instance
+        gameService = RetrofitClient.gameServiceInstance
         CoroutineScope(Dispatchers.IO).launch {
             Log.d(TAG, "Hitting the /game/join endpoint, with token: $token, userId: ${user!!.id}")
-            val response = authService.joinGame("Bearer $token", JoinGameRequest(user.id))
+            val response = gameService.joinGame("Bearer $token", JoinGameRequest(user.id, duration, gameMode!!, gameType!!))
             if (!response.isSuccessful) {
-                Log.e(TAG, "Failed to join game: ${response.errorBody()}")
+                Log.e(TAG, "Failed to join game: ${response.message()}")
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@GameActivity, "Error joining the game.", Toast.LENGTH_SHORT)
-                        .show()
-                    finish()
+                    if(response.message() == "Unauthorized"){
+                        Toast.makeText(this@GameActivity, "Session expired. Login again to continue", Toast.LENGTH_SHORT).show()
+                        authViewModel.getAuthManager().clearCredentials()
+                        val intent = Intent(this@GameActivity, SignInActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                    }
+                    else{
+                        Toast.makeText(this@GameActivity, "Error joining the game.", Toast.LENGTH_SHORT).show()
+                    }
                 }
                 return@launch
             }
@@ -140,7 +183,7 @@ class GameActivity : ComponentActivity(), MessageActions {
                 return@launch
             }
             Log.d(TAG, "/game/join endpoint response, Response body: ${response.body()}")
-            Constants.webSocketClient.start(response.body()!!.wsURL, token!!)
+            Constants.webSocketClient.start(response.body()!!.wsURL, token!!, duration.toString(), gameMode, gameType)
         }
 
         setContent {
@@ -202,25 +245,42 @@ class GameActivity : ComponentActivity(), MessageActions {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                PlayerDisplayTab(
-                                    username = opponent,
-                                    photoUrl = "https://firebasestorage.googleapis.com/v0/b/musix-a6206.appspot.com/o/banner%2Fabout_karan_aujla.jpg?alt=media&token=4b6dc927-c080-4c6d-ba14-9d0a9a1b02df"
-                                )
+                                if(opponent != null){
+                                    PlayerDisplayTab(
+                                        username = opponent!!.username,
+                                        photoUrl = opponent!!.photoUrl ?: ""
+                                    )
+                                }
+                                else{
+                                    PlayerDisplayTab(
+                                        username = "Opponent",
+                                        photoUrl = ""
+                                    )
+                                }
                                 TimerComposable(time = BasicUtils.millisToString(if (color == 'b') whiteTime else if (color == 'w') blackTime else 0))
                             }
                             ChessBoard(
-                                messageActions = this@GameActivity,
-                                color = Constants.colorToSideMapping[color]!!,
-                                username = Constants.user.username,
-                                opponent = opponent,
-                                context = this@GameActivity,
                                 modifier = Modifier.padding(innerPadding),
-                                board = board,
+                                user = Constants.user,
+                                opponent = opponent!!,
+                                color = Constants.colorToSideMapping[color]!!,
+                                gameDuration = gameDuration,
+                                gameType = gameType,
+                                context = this@GameActivity,
                                 deviceBoard = deviceBoard,
+                                turn = turn,
+                                changeTurn = {
+                                    Log.d(TAG, "Previous turn: $turn")
+                                    turn = if(turn == Side.WHITE) Side.BLACK
+                                    else Side.WHITE
+                                    Log.d(TAG, "Turn changed to: $turn")
+                                },
                                 legalBoardMoves = legalMoves,
                                 result = result,
                                 cause = cause,
-                                onMoveMade = { from, to, piece ->
+                                gameOverResponse = gameOverResponse,
+                                viewModel = chessBoardViewModel,
+                                onMoveMade = { move ->
                                     chessBoardViewModel.apply {
                                         if (color == 'w') {
                                             Log.d(TAG, "OUR move made, starting BLACK...")
@@ -232,18 +292,52 @@ class GameActivity : ComponentActivity(), MessageActions {
                                             _whiteTimer.start()
                                         }
                                     }
-                                    movesList.add(
-                                        BasicUtils.generateMoveString(
-                                            from,
-                                            to,
-                                            piece,
-                                            color
-                                        )
-                                    )
+                                    movesList.add(move)
                                     Log.d(
                                         TAG,
                                         "Size: ${movesList.size}\tLatest move added: ${if (movesList.isNotEmpty()) movesList[movesList.size - 1] else "movesList is empty!"}"
                                     )
+                                },
+                                onExportPGNClicked = { toggleProgressIndicator ->
+                                    Log.d(TAG, "Fetching PGN data...")
+                                    val gameService = RetrofitClient.gameServiceInstance
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        Log.d(TAG, "Hitting the /game/pgn endpoint, with token: $token, gameId: ${gameOverResponse!!.id}")
+                                        val response = gameService.getPGNData(
+                                            token = "Bearer $token",
+                                            gameId = gameOverResponse!!.id
+                                        )
+
+                                        if(!response.isSuccessful){
+                                            withContext(Dispatchers.Main){
+                                                Toast.makeText(this@GameActivity, "Error getting PGN data.", Toast.LENGTH_SHORT).show()
+                                            }
+                                            toggleProgressIndicator()
+                                            return@launch
+                                        }
+                                        else{
+                                            if(response.body() == null){
+                                                withContext(Dispatchers.Main){
+                                                    Toast.makeText(this@GameActivity, "Error getting PGN data.", Toast.LENGTH_SHORT).show()
+                                                }
+                                                toggleProgressIndicator()
+                                                return@launch
+                                            }
+                                            val pgnData = response.body()!!.pgn
+                                            Log.d(TAG, "PGN data: $pgnData")
+
+                                            withContext(Dispatchers.Main){
+                                                val sendIntent = Intent().apply{
+                                                    action = Intent.ACTION_SEND
+                                                    putExtra(Intent.EXTRA_TEXT, pgnData)
+                                                    type = "text/plain"
+                                                }
+                                                val shareIntent = Intent.createChooser(sendIntent, null)
+                                                startActivity(shareIntent)
+                                            }
+                                            toggleProgressIndicator()
+                                        }
+                                    }
                                 }
                             )
                             Row(
@@ -256,7 +350,7 @@ class GameActivity : ComponentActivity(), MessageActions {
                                 if(!showDrawDialog){
                                     PlayerDisplayTab(
                                         username = Constants.user.username,
-                                        photoUrl = "https://firebasestorage.googleapis.com/v0/b/musix-a6206.appspot.com/o/banner%2Fabout_coldplay.jpg?alt=media&token=35ce63d9-ddb6-4115-af5e-4cd38f65cc99"
+                                        photoUrl = Constants.user.photoUrl ?: ""
                                     )
                                 }
                                 else{
@@ -289,47 +383,7 @@ class GameActivity : ComponentActivity(), MessageActions {
 
                             if (movesList.isNotEmpty()) {
                                 val lazyListState: LazyListState = rememberLazyListState()
-                                LazyRow(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(10.dp),
-                                    state = lazyListState
-                                ) {
-                                    itemsIndexed(movesList) { index, move ->
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                modifier = Modifier.padding(5.dp),
-                                                text = "${index + 1}.",
-                                                fontSize = 20.sp,
-                                                color = Color.Gray,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Image(
-                                                modifier = Modifier
-                                                    .padding(end = 3.dp)
-                                                    .size(25.dp),
-                                                painter = painterResource(
-                                                    if (move[0] == 'w')
-                                                        Constants.whitePieceToSymbol[move[1]]!!
-                                                    else
-                                                        Constants.blackPieceToSymbol[move[1]]!!
-                                                ),
-                                                contentDescription = null
-                                            )
-                                            Text(
-                                                modifier = Modifier.padding(start = 5.dp),
-                                                text = move.slice(2..<move.length),
-                                                fontSize = 20.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = colorResource(R.color.replay_text)
-                                            )
-                                            ScrollToEnd(movesList, lazyListState)
-                                        }
-                                    }
-                                }
+                                MovesListComposable(movesList, lazyListState)
                             } else {
                                 Spacer(
                                     Modifier
@@ -455,38 +509,32 @@ class GameActivity : ComponentActivity(), MessageActions {
         }
     }
 
-    @Composable
-    fun ScrollToEnd(movesList: List<String>, lazyListState: LazyListState) {
-        Log.d(TAG, "ScrollToEnd called")
-        LaunchedEffect(movesList.size) {
-            if (movesList.isNotEmpty()) {
-                lazyListState.animateScrollToItem(movesList.size - 1)
-            }
-        }
-    }
-
     override fun onInfoReceived(onlineUsers: Int) {
         this.onlineUsers = onlineUsers
     }
 
-    override fun onGameStart(color: Char, opponent: String) {
+    override fun onGameStart(color: Char, opponent: com.singhDevs.chezz.models.User, duration: Int, gameType: GameType) {
         this.color = color
         this.opponentColor = if (color == 'w') 'b' else 'w'
         this.opponent = opponent
+        this.gameDuration = duration/(60 * 1000)
+        this.gameType = gameType
     }
 
     override fun onMoveMade(
         board: Board,
         move: com.singhDevs.chezz.models.Move,
         piece: Char,
-        result: Char?,
-        cause: String?,
         whiteTime: Long,
         blackTime: Long
     ) {
         Log.d(TAG, "onMoveMade: $board")
 
-        movesList.add(BasicUtils.generateMoveString(move.from, move.to, piece, opponentColor))
+        val moveString = if(move.kingSideCastle) "O-O";
+        else if(move.queenSideCastle) "O-O-O";
+        else BasicUtils.generateMoveString(move.from, move.to, piece, opponentColor)
+
+        movesList.add(moveString)
         Log.d(
             TAG,
             "Size: ${movesList.size}\tLatest move added: ${if (movesList.isNotEmpty()) movesList[movesList.size - 1] else "movesList is empty!"}"
@@ -496,10 +544,12 @@ class GameActivity : ComponentActivity(), MessageActions {
             onServerTimeSync(whiteTime, blackTime)
             if (color == 'w') {
                 Log.d(TAG, "OPPONENT move made, starting WHITE...")
+                turn = Side.WHITE
                 _whiteTimer.start()
                 _blackTimer.pause()
             } else if (color == 'b') {
                 Log.d(TAG, "OPPONENT move made, starting BLACK...")
+                turn = Side.BLACK
                 _blackTimer.start()
                 _whiteTimer.pause()
             }
@@ -513,8 +563,6 @@ class GameActivity : ComponentActivity(), MessageActions {
         )
         this.board = board
         this.legalMoves = deviceBoard.legalMoves()
-        this.result = result
-        this.cause = cause
 
         Log.d(TAG, "onMoveMade, printing deviceBoard:-\n$deviceBoard")
         Log.d(TAG, "now its turn of: ${deviceBoard.sideToMove}")
@@ -524,12 +572,17 @@ class GameActivity : ComponentActivity(), MessageActions {
         }
     }
 
-    override fun onGameOver(result: Char?, cause: String?, move: com.singhDevs.chezz.models.Move) {
-        this.result = result
-        this.cause = cause
+    override fun onGameOver(gameOverResponse: GameOverResponse) {
         chessBoardViewModel.stopTimers()
+        this.result = gameOverResponse.result
+        Log.d(TAG, "GAME OVER - result: $result")
+        this.cause = gameOverResponse.cause
+        this.gameOverResponse = gameOverResponse
 
-        if ((result == 'w' && color == 'w') || (result == 'b' && color == 'b') || result == 'd' || result == 'r') {
+
+        val move = gameOverResponse.move
+
+        if ((result == ResultType.WHITE && color == 'w') || (result == ResultType.BLACK && color == 'b') || result == ResultType.DRAW) {
             return
         } else {
             movesList.add(

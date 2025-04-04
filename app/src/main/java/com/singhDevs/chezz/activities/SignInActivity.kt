@@ -15,23 +15,25 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.singhDevs.chezz.BuildConfig
 import com.singhDevs.chezz.ChezzApplication
-import com.singhDevs.chezz.R
 import com.singhDevs.chezz.auth.AuthManager
+import com.singhDevs.chezz.di.RatingsRepository
+import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.network.AuthService
 import com.singhDevs.chezz.network.GoogleAuthRequest
 import com.singhDevs.chezz.network.RetrofitClient
-import com.singhDevs.chezz.network.User
 import com.singhDevs.chezz.screens.SignInScreen
 import com.singhDevs.chezz.ui.theme.ChezzTheme
+import com.singhDevs.chezz.utils.Constants
 import com.singhDevs.chezz.viewmodels.AuthViewModel
+import com.singhDevs.chezz.viewmodels.SignInViewModel
+import com.singhDevs.chezz.viewmodels.SignInViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -45,19 +47,33 @@ class SignInActivity : ComponentActivity() {
         (application as ChezzApplication).getAuthManager()
     }
 
+    private lateinit var ratingsRepository: RatingsRepository
+    private lateinit var signInViewModel: SignInViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        authService = RetrofitClient.instance
+        ratingsRepository = RatingsRepository(applicationContext)
+        signInViewModel = ViewModelProvider(
+            this,
+            SignInViewModelFactory(ratingsRepository)
+        )[SignInViewModel::class.java]
+
+        authService = RetrofitClient.authServiceInstance
         authViewModel = (application as ChezzApplication).authViewModel
+
 
         setContent {
             ChezzTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     SignInScreen(
                         modifier = Modifier.padding(innerPadding),
-                        onGoogleSignInClick = { initiateGoogleSignIn() }
+                        onGoogleSignInClick = { initiateGoogleSignIn() },
+                        onSignUpClick = {
+                            val intent = Intent(this@SignInActivity, SignUpActivity::class.java)
+                            startActivity(intent)
+                        },
                     )
                 }
             }
@@ -105,11 +121,12 @@ class SignInActivity : ComponentActivity() {
 
                 lifecycleScope.launch {
                     try {
-                        val response = authService.authenticateWithGoogle(GoogleAuthRequest(idToken))
+                        val response =
+                            authService.authenticateWithGoogle(GoogleAuthRequest(idToken))
 
                         if (response.isSuccessful) {
                             val authResponse = response.body()
-                            if(authResponse == null) {
+                            if (authResponse == null) {
                                 Log.e(TAG, "Authentication failed: Response body is null")
                                 showError("Authentication failed: Please try again later.")
                                 return@launch
@@ -117,19 +134,32 @@ class SignInActivity : ComponentActivity() {
 
                             // Saving credentials in Encrypted Shared Preferences
                             authManager.saveUserData(authResponse.token, authResponse.user)
+                            Constants.user = authResponse.user
+
+                            // Saving ratings in Proto DataStore
+                            Log.d(TAG, "Saving user ratings...")
+                            signInViewModel.saveAllRatings(authResponse.user.ratings)
+
                             CoroutineScope(Dispatchers.IO).launch {
                                 authViewModel.checkAuthState()
-                                Log.d(TAG, "Auth State updated. Current auth state: ${authViewModel.authState.value}")
+                                Log.d(
+                                    TAG,
+                                    "Auth State updated. Current auth state: ${authViewModel.authState.value}"
+                                )
                             }
-                            Log.d(TAG, "Authentication successful, Received token: ${authResponse.token}")
+                            Log.d(
+                                TAG,
+                                "Authentication successful, Received token: ${authResponse.token}"
+                            )
                             Toast.makeText(
                                 this@SignInActivity,
-                                "Authentication successful, Received token: ${authResponse.token}",
+                                "Signed in!",
                                 Toast.LENGTH_SHORT
                             ).show()
 
                             val intent = Intent(this@SignInActivity, HomeActivity::class.java)
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            intent.flags =
+                                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                             startActivity(intent)
                         } else {
                             showError("Authentication failed")

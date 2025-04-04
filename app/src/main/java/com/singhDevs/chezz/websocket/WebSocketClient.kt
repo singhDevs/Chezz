@@ -7,8 +7,15 @@ import com.singhDevs.chezz.models.Message
 import com.singhDevs.chezz.models.MessageTypes
 import com.singhDevs.chezz.models.chessboard.Board
 import com.google.gson.Gson
+import com.singhDevs.chezz.models.GameMode
+import com.singhDevs.chezz.models.GameOverResponse
+import com.singhDevs.chezz.models.GameType
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
@@ -21,13 +28,21 @@ class WebSocketClient(val messageActions: MessageActions) {
     var webSocket: WebSocket? = null
     val gson = Gson()
 
-    fun start(wsUrl: String, token: String) {
+    fun start(
+        wsUrl: String,
+        token: String,
+        gameDuration: String,
+        gameMode: GameMode,
+        gameType: GameType
+    ) {
         Log.d(TAG, "start() method of  WebSocketClient called, with following params:")
         Log.d(TAG, "wsUrl: $wsUrl")
         Log.d(TAG, "token: $token")
 
+        Log.d(TAG, "WSURL: $wsUrl")
+        val wsUrlWithQueries = "$wsUrl&duration=$gameDuration&gameMode=$gameMode&gameType=$gameType"
         val request = Request.Builder()
-            .url(wsUrl)
+            .url(wsUrlWithQueries)
             .addHeader("Authorization", "Bearer $token")
             .build()
 
@@ -49,7 +64,7 @@ class WebSocketClient(val messageActions: MessageActions) {
                     }
 
                     MessageTypes.START_GAME.value -> {
-                        messageActions.onGameStart(message.color!!, message.opponent!!)
+                        messageActions.onGameStart(message.color!!, message.opponent!!, message.duration!!, message.gameType!!)
                         return
                     }
 
@@ -69,8 +84,6 @@ class WebSocketClient(val messageActions: MessageActions) {
                                     board,
                                     it,
                                     message.piece!![0],
-                                    result = message.result,
-                                    message.cause,
                                     message.whiteTime!!,
                                     message.blackTime!!
                                 )
@@ -92,11 +105,8 @@ class WebSocketClient(val messageActions: MessageActions) {
 
                     MessageTypes.GAME_OVER.value -> {
                         message.move?.let {
-                            messageActions.onGameOver(
-                                message.result,
-                                message.cause,
-                                it
-                            )
+                            val gameOverResponse = gson.fromJson(text, GameOverResponse::class.java)
+                            messageActions.onGameOver(gameOverResponse)
                         }
                     }
 
@@ -127,6 +137,11 @@ class WebSocketClient(val messageActions: MessageActions) {
             }
         }
 
-        webSocket = client.newWebSocket(request, listener)
+        try {
+            webSocket = client.newWebSocket(request, listener)
+        }
+        catch(error: Error){
+            Log.d(TAG, "Caught error: $error");
+        }
     }
 }

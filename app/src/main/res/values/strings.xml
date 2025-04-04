@@ -4,4 +4,6 @@
     <string name="title_activity_sign_in">SignInActivity</string>
     <string name="title_activity_splash_screen">SplashScreen</string>
     <string name="title_activity_home">HomeActivity</string>
+    <string name="title_activity_game_history">GameHistoryActivity</string>
+    <string name="title_activity_sign_up">SignUpActivity</string>
 </resources>

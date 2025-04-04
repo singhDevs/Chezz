@@ -1,62 +1,38 @@
 package com.singhDevs.chezz.screens
 
 import android.content.Context
+import android.os.WorkDuration
 import android.util.Log
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.rememberLottieComposition
+import com.github.bhlangonijr.chesslib.Board
 import com.github.bhlangonijr.chesslib.CastleRight
 import com.github.bhlangonijr.chesslib.Piece
 import com.github.bhlangonijr.chesslib.PieceType
@@ -65,33 +41,49 @@ import com.github.bhlangonijr.chesslib.Square
 import com.github.bhlangonijr.chesslib.move.Move
 import com.google.gson.Gson
 import com.singhDevs.chezz.R
+import com.singhDevs.chezz.UserRatingsOuterClass
+import com.singhDevs.chezz.components.ResultDialog
+import com.singhDevs.chezz.di.RatingsRepository
+import com.singhDevs.chezz.models.GameOverResponse
+import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.models.Message
 import com.singhDevs.chezz.models.MessageTypes
-import com.singhDevs.chezz.models.chessboard.Board
-import com.singhDevs.chezz.models.chessboard.Castling
+import com.singhDevs.chezz.models.ResultType
+import com.singhDevs.chezz.models.User
+import com.singhDevs.chezz.network.RetrofitClient
+import com.singhDevs.chezz.utils.BasicUtils
 import com.singhDevs.chezz.utils.BasicUtils.getColor
 import com.singhDevs.chezz.utils.Constants
 import com.singhDevs.chezz.utils.Constants.alphabets
 import com.singhDevs.chezz.utils.Constants.charToSquareMapping
-import com.singhDevs.chezz.websocket.MessageActions
+import com.singhDevs.chezz.viewmodels.ChessBoardViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 private const val TAG = "WebSocketClient"
 private var legalMoves: List<Move>? = null
+private var promotionMoves: MutableList<Move> = arrayListOf()
 
 @Composable
 fun ChessBoard(
-    modifier: Modifier = Modifier,
-    messageActions: MessageActions,
+    modifier: Modifier,
+    user: com.singhDevs.chezz.network.User,
+    opponent: User,
     color: Side = Side.WHITE,
-    username: String,
-    opponent: String,
+    gameDuration: Int,
+    gameType: GameType,
     context: Context,
-    board: Board,
-    deviceBoard: com.github.bhlangonijr.chesslib.Board,
+    deviceBoard: Board,
+    turn: Side,
+    changeTurn: () -> Unit,
     legalBoardMoves: MutableList<Move>?,
-    result: Char?,
+    result: ResultType?,
     cause: String?,
-    onMoveMade: (from: String, to: String, piece: Char) -> Unit
+    gameOverResponse: GameOverResponse?,
+    viewModel: ChessBoardViewModel,
+    onMoveMade: (move: String) -> Unit,
+    onExportPGNClicked: (toggleProgressIndicator: () -> Unit) -> Unit
 ) {
     Log.d("Chezz", "result: $result")
     Log.d(TAG, "ChessBoard() is called")
@@ -99,12 +91,33 @@ fun ChessBoard(
     if (legalBoardMoves?.isEmpty() == true || legalBoardMoves == null) {
         Log.d(TAG, "Found legalMoves empty!")
         legalMoves = deviceBoard.legalMoves()
-    } else legalMoves = legalBoardMoves
+    } else {
+        legalMoves = legalBoardMoves
+    }
+    legalMoves?.forEach {
+        if (!Piece.NONE.equals(it.promotion)) {
+            promotionMoves.add(it)
+        }
+    }
 
     var selectedSquare by remember { mutableStateOf<Square?>(null) }
     var selectedPiece by remember { mutableStateOf<PieceType?>(null) }
 
-    var castleRight by remember { mutableStateOf<CastleRight?>(CastleRight.NONE)}
+    var castleQueen by remember { mutableStateOf(false) }
+    var castleKing by remember { mutableStateOf(false) }
+    var showResultDialog by remember { mutableStateOf(false) }
+    val playerWhite = if (color == Side.WHITE) User(
+        user.username, 1500,
+        1500,
+        1500,
+        user.photoUrl
+    ) else opponent
+    val playerBlack = if (color == Side.BLACK) User(
+        user.username, 1500,
+        1500,
+        1500,
+        user.photoUrl
+    ) else opponent
 
     LaunchedEffect(selectedSquare) {
         Log.d(TAG, "Selected square changed to: $selectedSquare")
@@ -172,6 +185,12 @@ fun ChessBoard(
                                 // Second click - making a move
                                 else -> {
                                     Log.d(TAG, "Second click detected!")
+                                    Log.d(TAG, "turn: $turn\tcolor: $color")
+                                    if (turn != color) {
+                                        Log.d(TAG, "Not our turn yet!")
+                                        return@detectTapGestures
+                                    }
+
                                     val move = Move(
                                         charToSquareMapping[selectedSquare!!
                                             .toString()
@@ -189,16 +208,19 @@ fun ChessBoard(
                                             .lowercase()
                                     )
 
-                                    Log.d(
+                                    /*Log.d(
                                         TAG,
-                                        "Need to find legal moves for: ${move.from} -> ${move.to}..."
+                                        "Need to find any promotion moves available: ${move.from} -> ${move.to}..."
                                     )
-                                    if (legalMoves!!.any { it.from == move.from && it.to == move.to }) {
-                                        Log.d(TAG, "Found a Legal move!")
-                                        Log.d(
-                                            TAG,
-                                            "Piece sent: $selectedPiece, char version: ${Constants.pieceTypeToChar[selectedPiece]}"
-                                        )
+                                    if (promotionMoves.any { it.from == move.from && it.to == move.to }) {
+                                        Log.d(TAG, "Didn't find any promotion moves!")
+                                    }
+                                    else {
+                                        Log.d(TAG, "Found a promotion move!")
+
+                                        promotionDialogOffset = Pair(x, y)
+                                        shouldShowPromotionDialog = true
+
                                         deviceBoard.doMove(
                                             Move(
                                                 charToSquareMapping[moveModel.from],
@@ -206,8 +228,10 @@ fun ChessBoard(
                                             )
                                         )
                                         castleRight = deviceBoard.getCastleRight(color)
-                                        moveModel.kingSideCastle = castleRight == CastleRight.KING_SIDE
-                                        moveModel.queenSideCastle = castleRight == CastleRight.QUEEN_SIDE
+                                        moveModel.kingSideCastle =
+                                            castleRight == CastleRight.KING_SIDE
+                                        moveModel.queenSideCastle =
+                                            castleRight == CastleRight.QUEEN_SIDE
 
                                         Log.d(TAG, "castleRight: $castleRight")
 
@@ -224,6 +248,76 @@ fun ChessBoard(
                                             Constants.pieceTypeToChar[selectedPiece]!!.toCharArray()[0]
                                         )
                                         Constants.webSocketClient.webSocket?.send(moveMessage)
+
+                                        selectedSquare = null
+                                        selectedPiece = null
+                                        promotionMoves.clear()
+                                        return@detectTapGestures
+                                    }*/
+
+                                    Log.d(
+                                        TAG,
+                                        "Need to find legal moves for: ${move.from} -> ${move.to}..."
+                                    )
+                                    if (legalMoves!!.any { it.from == move.from && it.to == move.to }) {
+                                        Log.d(TAG, "Found a Legal move!")
+                                        Log.d(
+                                            TAG,
+                                            "Piece sent: $selectedPiece, char version: ${Constants.pieceTypeToChar[selectedPiece]}"
+                                        )
+                                        deviceBoard.doMove(
+                                            Move(
+                                                charToSquareMapping[moveModel.from],
+                                                charToSquareMapping[moveModel.to]
+                                            )
+                                        )
+
+                                        val castleRight = deviceBoard.getCastleRight(color)
+                                        if (castleRight == CastleRight.NONE && (!castleKing && !castleQueen)) {
+                                            /*
+                                            WHITE CASTLING options --> e1c1 & e1g1
+                                            BLACK CASTLING options --> e8c8 & e1g8
+                                            */
+                                            if (color == Side.WHITE) {
+                                                if (moveModel.from == "e1" && moveModel.to == "c1") {
+                                                    castleQueen = true
+                                                    moveModel.queenSideCastle = true
+                                                } else if (moveModel.from == "e1" && moveModel.to == "g1") {
+                                                    castleKing = true
+                                                    moveModel.kingSideCastle = true
+                                                }
+                                            } else {
+                                                if (moveModel.from == "e8" && moveModel.to == "c8") {
+                                                    castleQueen = true
+                                                    moveModel.queenSideCastle = true
+                                                } else if (moveModel.from == "e8" && moveModel.to == "g8") {
+                                                    castleKing = true
+                                                    moveModel.kingSideCastle = true
+                                                }
+                                            }
+                                            onMoveMade(if (castleQueen) "O-O-O" else "O-O")
+                                        } else {
+                                            onMoveMade(
+                                                BasicUtils.generateMoveString(
+                                                    moveModel.from,
+                                                    moveModel.to,
+                                                    Constants.pieceTypeToChar[selectedPiece]!!.toCharArray()[0],
+                                                    if (color == Side.WHITE) 'w' else 'b'
+                                                )
+                                            )
+                                        }
+
+                                        Log.d(TAG, "castleRight: $castleRight")
+
+                                        val moveMessage = Gson().toJson(
+                                            Message(
+                                                type = MessageTypes.MOVE.value,
+                                                move = moveModel,
+                                                piece = Constants.pieceTypeToChar[selectedPiece]
+                                            )
+                                        )
+                                        Constants.webSocketClient.webSocket?.send(moveMessage)
+                                        changeTurn()
                                     } else {
                                         Log.d(TAG, "Didn't find any Legal move!")
                                         if (legalMoves!!.isEmpty()) {
@@ -271,6 +365,14 @@ fun ChessBoard(
                             topLeft = Offset(j * squareWidth, i * squareHeight),
                             size = Size(squareWidth, squareHeight)
                         )
+
+//                        if(shouldShowPromotionDialog){
+//                            drawRect(
+//                                color = Color.White,
+//                                topLeft = Offset(j * squareWidth, i * squareHeight),
+//                                size = Size(squareWidth, squareHeight)
+//                            )
+//                        }
 
                         // Draw highlight if square is selected
                         if (selectedSquare != null) {
@@ -369,196 +471,62 @@ fun ChessBoard(
         }
     }
 
-
-    if (result != null && cause != null) {
-        val white: Pair<String, String>
-        val black: Pair<String, String>
-
-        if (color == Side.WHITE) {
-            white = Pair(username, "")
-            black = Pair(opponent, "")
-        } else {
-            white = Pair(opponent, "")
-            black = Pair(username, "")
-        }
-        MinimalDialog(result, cause, white, black)
+    if (gameOverResponse != null) {
+        showResultDialog = true
     }
-}
 
-@Preview
-@Composable
-private fun MinimalDialogPreview() {
-    MinimalDialog('w', "CHECKMATE", Pair("plutamite", ""), Pair("benzabyte", ""))
-}
+    if (showResultDialog) {
+        if (gameOverResponse == null) {
+            Log.d(TAG, "gameOverResponse is null!")
+            return
+        }
+        if (gameOverResponse.updatedRatings == null) {
+            Log.d(TAG, "updatedRatings is null!")
+            return
+        }
+        val newRatings = when (gameType) {
+            GameType.BULLET -> gameOverResponse.updatedRatings.bulletRating
+            GameType.RAPID -> gameOverResponse.updatedRatings.rapidRating
+            GameType.BLITZ -> gameOverResponse.updatedRatings.blitzRating
+        }
+        ResultDialog(
+            context,
+            gameOverResponse.result,
+            gameOverResponse.cause,
+            newRatings,
+            gameType,
+            gameDuration,
+            playerWhite,
+            playerBlack,
+            gameOverResponse.winningUser,
+            user.username,
+            viewModel,
+            onDismissRequest = {
+                Log.d(TAG, "onDismissRequest called.")
+                showResultDialog = false
+            },
+            onShareClicked = {
 
-@Composable
-fun MinimalDialog(
-    result: Char,
-    cause: String,
-    playerWhite: Pair<String, String>,
-    playerBlack: Pair<String, String>
-) {
-    Dialog(onDismissRequest = {}) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-        ) {
-            // Background Card with blur effect
-            Card(
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Box {
-                    // Blurred background image
-                    Image(
-                        painter = painterResource(R.drawable.chess_wallpaper),
-                        contentDescription = "Chess Background",
-                        contentScale = ContentScale.Crop,
-                        colorFilter = ColorFilter.colorMatrix(
-                            ColorMatrix().apply {
-                                setToScale(0.5f, 0.5f, 0.5f, 1f) // Reduce RGB values to 60%
-                            }
-                        ),
-                        modifier = Modifier
-                            .matchParentSize()
-                            .blur(radius = 10.dp)
-                            .alpha(0.95f)
-                    )
+            },
+            onRematchClicked = {
 
-                    // Content overlay with semi-transparent background
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.White.copy(alpha = 0.3f))
-                            .padding(20.dp, 50.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        Text(
-                            text = cause,
-                            fontSize = 23.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            val lottieAnimation by rememberLottieComposition(
-                                LottieCompositionSpec.RawRes(
-                                    R.raw.popper_lottie
-                                )
-                            )
+            },
+            onNewGameClicked = {
 
-                            Box {
-                                if (result == 'w') {
-                                    LottieAnimation(
-                                        lottieAnimation,
-                                        iterations = 100,
-                                        isPlaying = true,
-                                        restartOnPlay = true,
-                                        modifier = Modifier.wrapContentSize()
-                                    )
-                                }
-                                Column(
-                                    modifier = Modifier.wrapContentSize(),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    val borderWidth = if (result == 'w') 5.dp else 0.dp
-                                    val borderColor = if (result == 'w') getColor(
-                                        LocalContext.current,
-                                        R.color.golden
-                                    ) else Color.Black
-                                    Image(
-                                        painter = painterResource(R.drawable.chesslogo),
-                                        contentDescription = "",
-                                        modifier = Modifier
-                                            .size(80.dp)
-                                            .padding(0.dp)
-                                            .clip(CircleShape)
-                                            .border(borderWidth, borderColor, CircleShape)
-                                    )
-                                    Text(
-                                        text = playerWhite.first,
-                                        textAlign = TextAlign.Center,
-                                        fontSize = 22.sp,
-                                        color = Color.White
-                                    )
-                                }
-
-                            }
-                            Text(
-                                modifier = Modifier.wrapContentSize(),
-                                text = "vs",
-                                textAlign = TextAlign.Center,
-                                fontSize = 20.sp,
-                                color = Color.White
-                            )
-                            Box {
-                                if (result == 'b') {
-                                    LottieAnimation(
-                                        lottieAnimation,
-                                        iterations = 100,
-                                        isPlaying = true,
-                                        restartOnPlay = true,
-                                        modifier = Modifier.wrapContentSize()
-                                    )
-                                }
-                                Column(
-                                    modifier = Modifier.wrapContentSize(),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    val borderWidth = if (result == 'b') 5.dp else 0.dp
-                                    val borderColor = if (result == 'b') getColor(
-                                        LocalContext.current,
-                                        R.color.golden
-                                    ) else Color.Black
-                                    Image(
-                                        painter = painterResource(R.drawable.chesslogo),
-                                        contentDescription = "",
-                                        modifier = Modifier
-                                            .size(80.dp)
-                                            .padding(0.dp)
-                                            .clip(CircleShape)
-                                            .border(borderWidth, borderColor, CircleShape)
-                                    )
-                                    Text(
-                                        text = playerBlack.first,
-                                        textAlign = TextAlign.Center,
-                                        fontSize = 22.sp,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-                        }
-
-                        Text(
-                            text = when (result) {
-                                'w' -> playerWhite.first + " won!"
-                                'b' -> playerBlack.first + " won!"
-                                'r' -> cause
-                                else -> "Draw"
-                            },
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight()
-                                .padding(0.dp, 20.dp),
-                            textAlign = TextAlign.Center,
-                            color = Color.White
-                        )
-                    }
-                }
+            },
+            onExportPGNClicked = { toggleProgressIndicator ->
+                onExportPGNClicked(toggleProgressIndicator)
             }
-        }
+        )
+
+        //Updating user ratings
+        Constants.user = com.singhDevs.chezz.network.User(
+            id = Constants.user.id,
+            email = Constants.user.email,
+            username = Constants.user.username,
+            photoUrl = Constants.user.photoUrl,
+            ratings = gameOverResponse.updatedRatings
+        )
+
     }
 }
-//@Preview(showSystemUi = true)
-//@Composable
-//private fun ChessBoardPreview() {
-//    ChessBoard(LocalContext.current)
-//}

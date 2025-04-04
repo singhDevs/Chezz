@@ -2,9 +2,10 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.jetbrains.kotlin.android) version "1.9.20"
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.protobuf") version "0.9.4"
 }
 
 val bundleId = "com.singhDevs.chezz"
@@ -51,6 +52,12 @@ android {
         }
     }
 
+    sourceSets {
+        getByName("main") {
+            java.srcDirs("build/generated/source/proto/main/java")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -61,21 +68,36 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.11"
     }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.1"
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                create("java") {
+                    option("lite")
+                }
+            }
         }
     }
 }
@@ -129,4 +151,8 @@ dependencies {
 
     // Secure Storage
     implementation("androidx.security:security-crypto:1.0.0")
+
+    // DataStore
+    implementation("com.google.protobuf:protobuf-javalite:3.25.1") // Update to latest
+    implementation("androidx.datastore:datastore:1.1.4")
 }

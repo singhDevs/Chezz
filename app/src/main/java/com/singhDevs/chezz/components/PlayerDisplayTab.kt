@@ -20,9 +20,8 @@ import com.singhDevs.chezz.R
 
 @Composable
 fun PlayerDisplayTab(
-    modifier: Modifier = Modifier,
     username: String,
-    photoUrl: String
+    photoUrl: String,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         AsyncImage(

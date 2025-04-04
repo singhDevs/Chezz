@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.singhDevs.chezz.network.User
+import androidx.core.content.edit
 
 class AuthManager private constructor(context: Context) {
     private val sharedPreferences = EncryptedSharedPreferences.create(
@@ -15,12 +16,13 @@ class AuthManager private constructor(context: Context) {
     )
 
     fun saveUserData(token: String, user: User) {
-        sharedPreferences.edit()
-            .putString("auth_token", token)
-            .putString("user_id", user.id)
-            .putString("user_email", user.email)
-            .putString("user_name", user.username)
-            .apply()
+        sharedPreferences.edit {
+            putString("auth_token", token)
+                .putString("user_id", user.id)
+                .putString("user_email", user.email)
+                .putString("user_name", user.username)
+                .putString("photoUrl", user.photoUrl)
+        }
     }
 
     fun getAuthToken() : String? = sharedPreferences.getString("auth_token", null)
@@ -28,8 +30,9 @@ class AuthManager private constructor(context: Context) {
     fun getUser(): User? {
         val id = sharedPreferences.getString("user_id", null)
         val email = sharedPreferences.getString("user_email", null)
-        val name = sharedPreferences.getString("user_name", null)
-        return if (id != null && email != null && name != null) User(id, email, name) else null
+        val userName = sharedPreferences.getString("user_name", null)
+        val photoUrl = sharedPreferences.getString("photoUrl", null)
+        return if (id != null && email != null && userName != null && photoUrl != null) User(id, email, userName, photoUrl) else null
     }
 
     fun isLoggedIn(): Boolean = getAuthToken() != null

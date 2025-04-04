@@ -8,20 +8,25 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClient {
     private const val BASE_URL = "http://10.0.2.2:3000"
 
-    val instance: AuthService by lazy {
-        val interceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
+    private val interceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
 
-        val client = OkHttpClient.Builder()
-            .addInterceptor(interceptor)
-            .build()
+    private val client = OkHttpClient.Builder()
+        .addInterceptor(interceptor)
+        .build()
 
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(AuthService::class.java)
+    private val retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(client)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    val authServiceInstance: AuthService by lazy {
+        retrofit.create(AuthService::class.java)
+    }
+
+    val gameServiceInstance: GameService by lazy {
+        retrofit.create(GameService::class.java)
     }
 }

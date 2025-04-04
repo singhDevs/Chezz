@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+option java_package = "com.singhDevs.chezz";
+
+message UserRatings {
+  int32 bulletRating = 1;
+  int32 blitzRating = 2;
+  int32 rapidRating = 3;
+}

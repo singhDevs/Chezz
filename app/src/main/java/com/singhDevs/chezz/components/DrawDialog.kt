@@ -2,6 +2,7 @@ package com.singhDevs.chezz.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +39,7 @@ fun DrawDialog(
             )
         }
         Text(
+            modifier = Modifier.padding(horizontal = 5.dp),
             text = "Draw?",
             fontFamily = FontFamily.Monospace,
             fontSize = 20.sp,
