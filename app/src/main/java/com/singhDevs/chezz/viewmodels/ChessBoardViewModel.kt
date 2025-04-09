@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.singhDevs.chezz.UserRatingsOuterClass
 import com.singhDevs.chezz.UserRatingsOuterClass.UserRatings
-import com.singhDevs.chezz.di.RatingsRepository
+import com.singhDevs.chezz.data.RatingsRepository
 import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.timer.ChessTimer
 import com.singhDevs.chezz.timer.TimerCallbacks

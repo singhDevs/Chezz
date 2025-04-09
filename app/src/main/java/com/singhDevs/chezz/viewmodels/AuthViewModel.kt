@@ -1,6 +1,8 @@
 package com.singhDevs.chezz.viewmodels
 
 import android.content.Context
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -9,7 +11,7 @@ import com.singhDevs.chezz.auth.AuthManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class AuthViewModel(context: Context): ViewModel() {
+class AuthViewModel(context: Context) : ViewModel() {
     private val authManager = AuthManager.getInstance(context)
     private val _authState = MutableLiveData<AuthState>()
     val authState: LiveData<AuthState> = _authState
@@ -20,10 +22,19 @@ class AuthViewModel(context: Context): ViewModel() {
         }
     }
 
-    fun checkAuthState(){
+    fun checkAuthState() {
         _authState.postValue(
-            if(authManager.isLoggedIn()) AuthState.Authenticated else AuthState.Unauthenticated
+            if (authManager.isLoggedIn()) AuthState.Authenticated else AuthState.Unauthenticated
         )
+    }
+
+    suspend fun signOut(context: Context) {
+        authManager.clearCredentials()
+        val creds = CredentialManager.create(context)
+        creds.clearCredentialState(
+            request = ClearCredentialStateRequest()
+        )
+        // Destroy token on server
     }
 
     fun getAuthManager(): AuthManager = authManager

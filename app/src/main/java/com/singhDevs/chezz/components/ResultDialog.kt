@@ -59,7 +59,7 @@ fun ResultDialog(
     context: Context,
     result: ResultType,
     cause: String,
-    newRating: Int,
+    newRating: Int?,
     gameType: GameType,
     gameDuration: Int,
     playerWhite: User,
@@ -74,8 +74,8 @@ fun ResultDialog(
     onExportPGNClicked: (toggleProgressIndicator: () -> Unit) -> Unit,
 ) {
     val initialRatings by viewModel._initialRatings.collectAsState()
+    if(newRating != null) viewModel.updateRating(gameType, newRating)
     var pgnBtnClicked by remember { mutableStateOf(false) }
-    viewModel.updateRating(gameType, newRating)
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -281,15 +281,17 @@ fun ResultDialog(
                         Toast.makeText(context, "Couldn't fetch your old rating", Toast.LENGTH_SHORT).show()
                     }
                     else{
-                        RatingDisplay(
-                            gameType = gameType,
-                            newRating = newRating,
-                            oldRating = when (gameType) {
-                                GameType.BULLET -> initialRatings!!.bulletRating
-                                GameType.BLITZ -> initialRatings!!.blitzRating
-                                GameType.RAPID -> initialRatings!!.rapidRating
-                            }
-                        )
+                        if(newRating != null){
+                            RatingDisplay(
+                                gameType = gameType,
+                                newRating = newRating,
+                                oldRating = when (gameType) {
+                                    GameType.BULLET -> initialRatings!!.bulletRating
+                                    GameType.BLITZ -> initialRatings!!.blitzRating
+                                    GameType.RAPID -> initialRatings!!.rapidRating
+                                }
+                            )
+                        }
                     }
 
 

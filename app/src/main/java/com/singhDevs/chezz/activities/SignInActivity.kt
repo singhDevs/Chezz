@@ -23,7 +23,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 import com.singhDevs.chezz.BuildConfig
 import com.singhDevs.chezz.ChezzApplication
 import com.singhDevs.chezz.auth.AuthManager
-import com.singhDevs.chezz.di.RatingsRepository
+import com.singhDevs.chezz.data.RatingsRepository
 import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.network.AuthService
 import com.singhDevs.chezz.network.GoogleAuthRequest
@@ -93,7 +93,7 @@ class SignInActivity : ComponentActivity() {
             .addCredentialOption(googleIdOption)
             .build()
 
-        val credentialManager = CredentialManager.create(this)
+        val credentialManager = CredentialManager.create(applicationContext)
 
         lifecycleScope.launch {
             try {

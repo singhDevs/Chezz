@@ -24,10 +24,15 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -59,6 +64,7 @@ import com.singhDevs.chezz.components.AnimatedDropdownArrow
 import com.singhDevs.chezz.components.GameHistoryComposable
 import com.singhDevs.chezz.components.GameModeComposable
 import com.singhDevs.chezz.components.HomeProfileComposable
+import com.singhDevs.chezz.components.PlayerProfileDialog
 import com.singhDevs.chezz.components.RatingHistoryChart
 import com.singhDevs.chezz.components.TimeDurationTypesComposable
 import com.singhDevs.chezz.models.Game
@@ -78,6 +84,7 @@ fun MainScreen(
     user: User,
     viewModel: HomeActivityViewModel,
     onPlayGameClicked: (gameDuration: Int, gameMode: GameMode, gameType: GameType) -> Unit,
+    onSigningOut: () -> Unit,
     games: List<Game>? = null
 ) {
     val ratings by viewModel.ratings.collectAsState()
@@ -90,13 +97,15 @@ fun MainScreen(
     var gameType by remember { mutableStateOf(GameType.BLITZ) }
     var shouldShowMoreGamesTitle by remember { mutableStateOf(false) }
 
+    var showProfileDialog by remember { mutableStateOf(false) }
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .background(colorResource(R.color.background))
     ) {
-        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -115,17 +124,25 @@ fun MainScreen(
                 painter = painterResource(R.drawable.ic_chezz_logo),
                 contentDescription = null
             )
-            AsyncImage(
+            IconButton(
+                onClick = { showProfileDialog = true },
                 modifier = Modifier
-                    .size(45.dp)
-                    .clip(RoundedCornerShape(percent = 20))
-                    .clickable {
-
-                    },
-                model = user.photoUrl,
-                error = painterResource(R.drawable.pfp_unavailable),
-                contentDescription = null
-            )
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2A2A2A))
+            ) {
+                AsyncImage(
+                    modifier = Modifier
+                        .size(45.dp)
+                        .clip(RoundedCornerShape(percent = 20))
+                        .clickable {
+                            showProfileDialog = true
+                        },
+                    model = user.photoUrl,
+                    error = painterResource(R.drawable.pfp_unavailable),
+                    contentDescription = null
+                )
+            }
         }
 
         Column(
@@ -267,7 +284,7 @@ fun MainScreen(
             ) {
                 if (games != null) {
                     Log.d(TAG, "Games: $games")
-                    if (games.size >= 10) shouldShowMoreGamesTitle = true
+                    if (games.size > 5) shouldShowMoreGamesTitle = true
 
                     if (games.isEmpty()) {
                         Column(
@@ -307,7 +324,7 @@ fun MainScreen(
                                 .fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            items(games.take(10)) {
+                            items(games.take(5)) {
                                 GameHistoryComposable(
                                     it,
                                     user.username
@@ -320,15 +337,14 @@ fun MainScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(5.dp),
-                                        shape = RoundedCornerShape(percent = 30),
+                                        shape = RoundedCornerShape(percent = 28),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = colorResource(
                                                 R.color.see_more_btn
                                             )
                                         ),
                                         onClick = {
-                                            val intent =
-                                                Intent(context, GameHistoryActivity::class.java)
+                                            val intent = Intent(context, GameHistoryActivity::class.java)
                                             intent.putExtra("user", user)
                                             intent.putExtra("gamesList", games as Serializable)
                                             context.startActivity(intent)
@@ -336,7 +352,7 @@ fun MainScreen(
                                     ) {
                                         Text(
                                             modifier = Modifier.padding(vertical = 2.5.dp),
-                                            text = "see More Games",
+                                            text = "see more Games...",
                                             fontSize = 20.sp,
                                             color = Color.White,
                                             fontWeight = FontWeight.Light
@@ -393,6 +409,36 @@ fun MainScreen(
                 )
             }
         }
+    }
+
+    if (showProfileDialog) {
+        PlayerProfileDialog(
+            context = context,
+            user = user,
+            games = games,
+            onDismiss = { showProfileDialog = false },
+            onSignOut = {
+                Log.d(TAG, "onSignOut clicked, signing out...")
+                showProfileDialog = false
+                onSigningOut()
+                /*
+                Do sign out cleanup, show a loading screen showing you are signing out
+                1. Clear EncryptedPrefs
+                        Remove the session token
+                        Remove any authentication-related data
+                        Clear user credentials (if stored)
+
+                2. Clear Proto DataStore
+                    Remove all user profile information
+                    Clear any user preferences or settings that aren't meant to persist across logins
+
+                3. Memory Cleanup
+                    Clear any in-memory caches related to the user
+                    Reset any singleton objects or repositories that might hold user data
+                Ensure viewModels are cleared or recreated
+                 */
+            }
+        )
     }
 }
 //}

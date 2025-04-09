@@ -155,4 +155,7 @@ dependencies {
     // DataStore
     implementation("com.google.protobuf:protobuf-javalite:3.25.1") // Update to latest
     implementation("androidx.datastore:datastore:1.1.4")
+
+    //Room
+    implementation("androidx.room:room-runtime:2.6.1")
 }

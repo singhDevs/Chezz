@@ -1,24 +1,19 @@
 package com.singhDevs.chezz.screens
 
 import android.content.Context
-import android.os.WorkDuration
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,25 +36,20 @@ import com.github.bhlangonijr.chesslib.Square
 import com.github.bhlangonijr.chesslib.move.Move
 import com.google.gson.Gson
 import com.singhDevs.chezz.R
-import com.singhDevs.chezz.UserRatingsOuterClass
 import com.singhDevs.chezz.components.ResultDialog
-import com.singhDevs.chezz.di.RatingsRepository
+import com.singhDevs.chezz.models.GameMode
 import com.singhDevs.chezz.models.GameOverResponse
 import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.models.Message
 import com.singhDevs.chezz.models.MessageTypes
 import com.singhDevs.chezz.models.ResultType
 import com.singhDevs.chezz.models.User
-import com.singhDevs.chezz.network.RetrofitClient
 import com.singhDevs.chezz.utils.BasicUtils
 import com.singhDevs.chezz.utils.BasicUtils.getColor
 import com.singhDevs.chezz.utils.Constants
 import com.singhDevs.chezz.utils.Constants.alphabets
 import com.singhDevs.chezz.utils.Constants.charToSquareMapping
 import com.singhDevs.chezz.viewmodels.ChessBoardViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 private const val TAG = "WebSocketClient"
 private var legalMoves: List<Move>? = null
@@ -73,6 +63,7 @@ fun ChessBoard(
     color: Side = Side.WHITE,
     gameDuration: Int,
     gameType: GameType,
+    gameMode: GameMode,
     context: Context,
     deviceBoard: Board,
     turn: Side,
@@ -83,6 +74,7 @@ fun ChessBoard(
     gameOverResponse: GameOverResponse?,
     viewModel: ChessBoardViewModel,
     onMoveMade: (move: String) -> Unit,
+    onNewGameClicked: () -> Unit,
     onExportPGNClicked: (toggleProgressIndicator: () -> Unit) -> Unit
 ) {
     Log.d("Chezz", "result: $result")
@@ -106,6 +98,7 @@ fun ChessBoard(
     var castleQueen by remember { mutableStateOf(false) }
     var castleKing by remember { mutableStateOf(false) }
     var showResultDialog by remember { mutableStateOf(false) }
+    var isDialogDisplayed by remember { mutableStateOf(false) }
     val playerWhite = if (color == Side.WHITE) User(
         user.username, 1500,
         1500,
@@ -471,7 +464,7 @@ fun ChessBoard(
         }
     }
 
-    if (gameOverResponse != null) {
+    if (gameOverResponse != null && !isDialogDisplayed) {
         showResultDialog = true
     }
 
@@ -480,15 +473,20 @@ fun ChessBoard(
             Log.d(TAG, "gameOverResponse is null!")
             return
         }
-        if (gameOverResponse.updatedRatings == null) {
+        if (gameOverResponse.updatedRatings == null && gameMode == GameMode.RATED) {
             Log.d(TAG, "updatedRatings is null!")
             return
         }
-        val newRatings = when (gameType) {
-            GameType.BULLET -> gameOverResponse.updatedRatings.bulletRating
-            GameType.RAPID -> gameOverResponse.updatedRatings.rapidRating
-            GameType.BLITZ -> gameOverResponse.updatedRatings.blitzRating
-        }
+
+        val newRatings = if(gameOverResponse.updatedRatings != null){
+             when (gameType) {
+                GameType.BULLET -> gameOverResponse.updatedRatings.bulletRating
+                GameType.RAPID -> gameOverResponse.updatedRatings.rapidRating
+                GameType.BLITZ -> gameOverResponse.updatedRatings.blitzRating
+            }
+        } else null
+
+
         ResultDialog(
             context,
             gameOverResponse.result,
@@ -503,7 +501,9 @@ fun ChessBoard(
             viewModel,
             onDismissRequest = {
                 Log.d(TAG, "onDismissRequest called.")
+                isDialogDisplayed = true
                 showResultDialog = false
+
             },
             onShareClicked = {
 
@@ -511,22 +511,22 @@ fun ChessBoard(
             onRematchClicked = {
 
             },
-            onNewGameClicked = {
-
-            },
+            onNewGameClicked = onNewGameClicked,
             onExportPGNClicked = { toggleProgressIndicator ->
                 onExportPGNClicked(toggleProgressIndicator)
             }
         )
 
         //Updating user ratings
-        Constants.user = com.singhDevs.chezz.network.User(
-            id = Constants.user.id,
-            email = Constants.user.email,
-            username = Constants.user.username,
-            photoUrl = Constants.user.photoUrl,
-            ratings = gameOverResponse.updatedRatings
-        )
-
+        if(gameOverResponse.updatedRatings != null && gameMode == GameMode.RATED){
+            Constants.user = com.singhDevs.chezz.network.User(
+                id = Constants.user.id,
+                email = Constants.user.email,
+                username = Constants.user.username,
+                photoUrl = Constants.user.photoUrl,
+                ratings = gameOverResponse.updatedRatings,
+                createdAt = Constants.user.createdAt
+            )
+        }
     }
 }

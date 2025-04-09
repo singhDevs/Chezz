@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.singhDevs.chezz.UserRatingsOuterClass
-import com.singhDevs.chezz.di.RatingsRepository
+import com.singhDevs.chezz.data.RatingsRepository
 import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.models.Ratings
 import kotlinx.coroutines.flow.SharingStarted

@@ -1,4 +1,4 @@
-package com.singhDevs.chezz.di
+package com.singhDevs.chezz.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -13,9 +13,9 @@ class RatingsRepository(context: Context) {
 
     val ratingsFlow: Flow<UserRatings> = dataStore.data
 
-    suspend fun getCurrentRatings(): UserRatings {
-        return dataStore.data.first()
-    }
+    suspend fun clearData() = dataStore.updateData { it.toBuilder().clear().build() }
+
+    suspend fun getCurrentRatings() = dataStore.data.first()
 
     suspend fun updateRatings(gameType: GameType, newValue: Int) {
         dataStore.updateData { current ->

@@ -9,6 +9,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import java.util.Date
 
 interface AuthService {
     @POST("/v1/auth/google")
@@ -26,5 +27,11 @@ data class User(
     val email: String,
     val username: String,
     val photoUrl: String?,
-    val ratings: Ratings = Ratings()
+    val createdAt: Date,
+    val totalGames: Int = 0,
+    val totalWins: Int = 0,
+    val totalLosses: Int = 0,
+    val totalDraws: Int = 0,
+    val totalTimePlayed: Int = 0,
+    val ratings: Ratings = Ratings(),
 ) : Parcelable

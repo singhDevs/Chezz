@@ -204,13 +204,13 @@ fun RatingHistoryChart(
                 Text(
                     text = "Play games to generate chart",
                     color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 16.sp,
+                    fontSize = 20.sp,
                     textAlign = TextAlign.Center
                 )
                 Text(
                     text = "Your ${selectedMode.name.lowercase(Locale.ROOT)} rating history will appear here",
                     color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 12.sp,
+                    fontSize = 16.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 8.dp)
                 )

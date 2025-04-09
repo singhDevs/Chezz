@@ -34,7 +34,8 @@ fun MovesListComposable(
         modifier = Modifier
             .fillMaxWidth()
             .padding(10.dp),
-        state = lazyListState
+        state = lazyListState,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         itemsIndexed(movesList) { index, move ->
             Row(

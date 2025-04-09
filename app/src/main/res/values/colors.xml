@@ -13,6 +13,7 @@
     <color name="option_btn_color">#894D23</color>
     <color name="text_light_square">#F2D0A1</color>
     <color name="cancel_btn_color">#5F1B1B</color>
+    <color name="sign_out_btn_color">#E54E4E</color>
     <color name="you_lost_text">#AB2A2A</color>
     <color name="golden">#FFD700</color>
     <color name="timer_text">#CBC7C4</color>

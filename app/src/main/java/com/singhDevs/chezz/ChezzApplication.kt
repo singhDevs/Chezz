@@ -8,6 +8,5 @@ class ChezzApplication: Application() {
     val authViewModel: AuthViewModel by lazy {
         AuthViewModel(applicationContext)
     }
-
     fun getAuthManager(): AuthManager = authViewModel.getAuthManager()
 }
