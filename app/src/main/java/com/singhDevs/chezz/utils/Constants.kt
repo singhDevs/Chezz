@@ -1,5 +1,6 @@
 package com.singhDevs.chezz.utils
 
+import com.github.bhlangonijr.chesslib.Piece
 import com.github.bhlangonijr.chesslib.PieceType
 import com.github.bhlangonijr.chesslib.Side
 import com.singhDevs.chezz.websocket.MessageActions
@@ -143,7 +144,7 @@ object Constants {
         Square.H7 to "h7",
         Square.H8 to "h8"
     )
-    val alphabets = "abcdefghijklmnopqrstuvwxyz"
+    const val FILES = "abcdefgh"
 
     val colorToSideMapping = mutableMapOf(
         'w' to Side.WHITE,
@@ -157,6 +158,24 @@ object Constants {
         PieceType.ROOK to "r",
         PieceType.QUEEN to "q",
         PieceType.KING to "k"
+    )
+
+    val whiteCharPieceToPiece = mutableMapOf(
+        'p' to Piece.WHITE_PAWN,
+        'n' to Piece.WHITE_KNIGHT,
+        'b' to Piece.WHITE_BISHOP,
+        'r' to Piece.WHITE_ROOK,
+        'q' to Piece.WHITE_QUEEN,
+        'k' to Piece.WHITE_KING
+    )
+
+    val blackCharPieceToPiece = mutableMapOf(
+        'p' to Piece.BLACK_PAWN,
+        'n' to Piece.BLACK_KNIGHT,
+        'b' to Piece.BLACK_BISHOP,
+        'r' to Piece.BLACK_ROOK,
+        'q' to Piece.BLACK_QUEEN,
+        'k' to Piece.BLACK_KING
     )
 
     val blackPieceToSymbol = mapOf(

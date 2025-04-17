@@ -81,7 +81,6 @@ class WebSocketClient(val messageActions: MessageActions) {
                             Log.d(TAG, "Sending updated board to ChessBoard Screen...")
                             message.move?.let {
                                 messageActions.onMoveMade(
-                                    board,
                                     it,
                                     message.piece!![0],
                                     message.whiteTime!!,

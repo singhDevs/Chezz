@@ -89,8 +89,7 @@ fun TopAppBar(context: ProfileActivity) {
             Text(
                 text = "Player Profile",
                 color = ChezzAppTheme.TextColor,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold)
             )
         },
         navigationIcon = {
@@ -156,8 +155,7 @@ fun ProfileHeader(user: User) {
         Text(
             text = user.username,
             color = ChezzAppTheme.TextColor,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Black
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -165,8 +163,7 @@ fun ProfileHeader(user: User) {
         Text(
             text = "on Chezz since $formattedDate",
             color = ChezzAppTheme.PrimaryAmber,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Light
+            style = MaterialTheme.typography.titleSmall
         )
     }
 }
@@ -188,8 +185,8 @@ fun RatingsSection(user: User) {
             Text(
                 text = "Chezz Ratings",
                 color = ChezzAppTheme.TextColor,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Light
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -239,10 +236,12 @@ fun RatingItem(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier.padding(horizontal = 10.dp).background(
-            color = ChezzAppTheme.FieldBackground,
-            shape = RoundedCornerShape(12.dp)
-        ),
+        modifier = Modifier
+            .padding(horizontal = 10.dp)
+            .background(
+                color = ChezzAppTheme.FieldBackground,
+                shape = RoundedCornerShape(12.dp)
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Image(
@@ -259,7 +258,7 @@ fun RatingItem(
             Text(
                 text = title,
                 color = ChezzAppTheme.TextColor.copy(alpha = 0.8f),
-                fontSize = 14.sp
+                style = MaterialTheme.typography.titleSmall
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -267,8 +266,7 @@ fun RatingItem(
             Text(
                 text = rating.toString(),
                 color = color,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black
+                style = MaterialTheme.typography.titleMedium,
             )
         }
     }
@@ -291,8 +289,8 @@ fun StatsSection(user: User) {
             Text(
                 text = "Game Statistics",
                 color = ChezzAppTheme.TextColor,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Light
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -305,10 +303,10 @@ fun StatsSection(user: User) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
+                    modifier = Modifier.width(80.dp),
                     text = "Win Rate",
                     color = ChezzAppTheme.TextColor,
-                    fontSize = 14.sp,
-                    modifier = Modifier.width(80.dp)
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Normal)
                 )
 
                 Box(
@@ -339,8 +337,7 @@ fun StatsSection(user: User) {
                 Text(
                     text = "${(winRate * 100).toInt()}%",
                     color = ChezzAppTheme.PrimaryAmber,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black),
                     textAlign = TextAlign.End,
                     modifier = Modifier.width(50.dp)
                 )
@@ -414,7 +411,7 @@ fun StatItem(
         Text(
             text = title,
             color = ChezzAppTheme.TextColor.copy(alpha = 0.8f),
-            fontSize = 14.sp
+            style = MaterialTheme.typography.titleSmall
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -422,8 +419,7 @@ fun StatItem(
         Text(
             text = value,
             color = ChezzAppTheme.TextColor,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Black
+            style = MaterialTheme.typography.titleMedium
         )
     }
 }

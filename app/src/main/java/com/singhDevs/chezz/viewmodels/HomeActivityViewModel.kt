@@ -5,12 +5,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.singhDevs.chezz.UserRatingsOuterClass
 import com.singhDevs.chezz.data.RatingsRepository
+import com.singhDevs.chezz.models.Ratings
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
 class HomeActivityViewModel(private val ratingsRepository: RatingsRepository): ViewModel() {
-    val ratings: StateFlow<UserRatingsOuterClass.UserRatings> = ratingsRepository.ratingsFlow
+    var ratings = Ratings()
+
+    val ratingsFlow: StateFlow<UserRatingsOuterClass.UserRatings> = ratingsRepository.ratingsFlow
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
@@ -18,6 +21,10 @@ class HomeActivityViewModel(private val ratingsRepository: RatingsRepository): V
         )
 
     suspend fun clearData() = ratingsRepository.clearData()
+
+    fun setRatings(ratings: UserRatingsOuterClass.UserRatings){
+        this.ratings = Ratings(ratings.bulletRating, ratings.blitzRating, ratings.rapidRating)
+    }
 }
 
 class HomeViewModelFactory(

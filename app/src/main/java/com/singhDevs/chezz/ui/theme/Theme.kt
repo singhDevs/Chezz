@@ -51,7 +51,7 @@ fun ChezzTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = ChezzTypography,
         content = content
     )
 }

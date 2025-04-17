@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -105,9 +106,8 @@ fun RatingDisplay(
                     GameType.BLITZ -> "BLITZ RATING"
                     GameType.BULLET -> "BULLET RATING"
                 },
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.titleSmall,
                 color = colorResource(R.color.text_secondary),
-                fontWeight = FontWeight.Medium
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -121,7 +121,7 @@ fun RatingDisplay(
                 Text(
                     text = newRating.toString(),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 36.sp,
+                    fontSize = 38.sp,
                     color =
                     if(ratingDifference != 0){
                         if(isRatingIncreased) colorResource(R.color.bg_casual)
@@ -154,13 +154,12 @@ fun RatingDisplay(
                                 imageVector = if (isRatingIncreased) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                                 contentDescription = if (isRatingIncreased) "Increased" else "Decreased",
                                 tint = if (isRatingIncreased) positiveColor else negativeColor,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(25.dp)
                             )
 
                             Text(
                                 text = "${if (isRatingIncreased) "+" else ""}$ratingDifference",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = if (isRatingIncreased) positiveColor else negativeColor
                             )
                         }

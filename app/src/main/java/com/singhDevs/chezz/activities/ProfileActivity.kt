@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import com.singhDevs.chezz.screens.ProfileScreen
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -77,7 +78,7 @@ class ProfileActivity : ComponentActivity() {
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     isDataLoaded = true
-                                    return@withContext
+                                    this@ProfileActivity.finish()
                                 }
                                 user = response.body()!!.user
                                 isDataLoaded = true
@@ -134,9 +135,7 @@ class ProfileActivity : ComponentActivity() {
                                 Text(
                                     modifier = Modifier.padding(top = 5.dp),
                                     text = "Loading Player profile$dots",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.headlineMedium,
                                     color = colorResource(R.color.text_light_square)
                                 )
                             }

@@ -12,6 +12,9 @@
     <color name="text_dark_square">#5D3A21</color>
     <color name="option_btn_color">#894D23</color>
     <color name="text_light_square">#F2D0A1</color>
+    <color name="highlight_square">#F6981E</color>
+    <color name="highlight_from_square">#F6981E</color>
+    <color name="highlight_to_square">#FFEB3B</color>
     <color name="cancel_btn_color">#5F1B1B</color>
     <color name="sign_out_btn_color">#E54E4E</color>
     <color name="you_lost_text">#AB2A2A</color>
@@ -45,5 +48,7 @@
     <color name="text_secondary">#B0B0B0</color>
     <color name="error">#CF6679</color>
     <color name="divider">#424242</color>
+
+    <color name="primary_amber">#bf903f</color>
 
 </resources>

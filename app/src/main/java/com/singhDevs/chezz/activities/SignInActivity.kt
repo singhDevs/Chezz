@@ -109,7 +109,8 @@ class SignInActivity : ComponentActivity() {
     }
 
     private fun handleSignInError(e: Exception) {
-        Toast.makeText(this@SignInActivity, e.message, Toast.LENGTH_LONG).show()
+        Log.d(TAG, "handleSignInError: " + e.message)
+        Toast.makeText(this@SignInActivity, "Error signing you in. Please try again later.", Toast.LENGTH_LONG).show()
     }
 
     private fun handleGoogleSignInResult(result: GetCredentialResponse) {
@@ -166,7 +167,8 @@ class SignInActivity : ComponentActivity() {
                             return@launch
                         }
                     } catch (e: Exception) {
-                        showError("Network error: ${e.message}")
+                        showError("Network error: Error signing you in")
+                        Log.d(TAG, "Network error: ${e.message}")
                         return@launch
                     }
                 }

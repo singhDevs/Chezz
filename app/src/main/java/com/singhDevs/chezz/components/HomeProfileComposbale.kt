@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -61,8 +62,7 @@ fun HomeProfileComposable(
         ) {
             Text(
                 text = user.username,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
                 color = primaryAmber
             )
             AnimatedContent(
@@ -112,8 +112,7 @@ fun HomeProfileComposable(
                                     Text(
                                         modifier = Modifier.padding(start = 5.dp),
                                         text = "Bullet rating: ${ratings.bulletRating}",
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Light,
+                                        style = MaterialTheme.typography.titleSmall,
                                         color = Color.LightGray
                                     )
                                 }
@@ -126,8 +125,7 @@ fun HomeProfileComposable(
                                     Text(
                                         modifier = Modifier.padding(start = 5.dp),
                                         text = "Blitz rating: ${ratings.blitzRating}",
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Light,
+                                        style = MaterialTheme.typography.titleSmall,
                                         color = Color.LightGray
                                     )
                                 }
@@ -140,8 +138,7 @@ fun HomeProfileComposable(
                                     Text(
                                         modifier = Modifier.padding(start = 5.dp),
                                         text = "Rapid rating: ${ratings.rapidRating}",
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Light,
+                                        style = MaterialTheme.typography.titleSmall,
                                         color = Color.LightGray
                                     )
                                 }
@@ -151,8 +148,7 @@ fun HomeProfileComposable(
                 } else {
                     Text(
                         text = "Rating is hidden, play casually 😉",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Light,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = Color.LightGray
                     )
                 }

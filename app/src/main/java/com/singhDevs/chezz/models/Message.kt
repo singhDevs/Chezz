@@ -1,10 +1,13 @@
 package com.singhDevs.chezz.models
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
 data class Message(
     val type: String,
     val color: Char? = null,
     val piece: String? = null,
-    val opponent: User? = null,
+    val opponent: UserWithoutCreds? = null,
     val move: Move? = null,
     val board: Any? = null,
     val turn: Char? = null,
@@ -16,3 +19,11 @@ data class Message(
     val duration: Int? = null,
     val gameType: GameType? = null
 )
+
+@Parcelize
+data class UserWithoutCreds(
+    val id: String,
+    val username: String,
+    val photoUrl: String?,
+    val ratings: Ratings?
+): Parcelable

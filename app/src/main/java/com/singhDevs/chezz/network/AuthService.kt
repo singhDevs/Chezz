@@ -28,10 +28,11 @@ data class User(
     val username: String,
     val photoUrl: String?,
     val createdAt: Date,
+
     val totalGames: Int = 0,
     val totalWins: Int = 0,
     val totalLosses: Int = 0,
     val totalDraws: Int = 0,
     val totalTimePlayed: Int = 0,
-    val ratings: Ratings = Ratings(),
+    var ratings: Ratings = Ratings()
 ) : Parcelable

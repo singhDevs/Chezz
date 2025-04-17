@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,8 +48,7 @@ fun TimeDurationTypesComposable(
     ) {
         Text(
             text = "How much time do you have?",
-            fontWeight = FontWeight.Thin,
-            fontSize = 25.sp,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Light),
             color = Color.White
         )
         Row(
@@ -100,7 +100,7 @@ fun TimeDurationTypesComposable(
                             }
                         ),
                     text = "1 min",
-                    fontSize = 18.sp
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
         }
@@ -157,7 +157,7 @@ fun TimeDurationTypesComposable(
                                     GameMode.CASUAL -> colorResource(R.color.bg_casual_btn)
                                 }
                             ),
-                        fontSize = 18.sp
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }
@@ -215,7 +215,7 @@ fun TimeDurationTypesComposable(
                                     GameMode.CASUAL -> colorResource(R.color.bg_casual_btn)
                                 }
                             ),
-                        fontSize = 18.sp
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }

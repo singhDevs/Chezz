@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,19 +25,20 @@ import com.singhDevs.chezz.R
 
 @Composable
 fun PlayerDisplayTab(
+    modifier: Modifier = Modifier,
     username: String,
     photoUrl: String,
     gameModeIcon: Int? = null,
     rating: Int? = null
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         AsyncImage(
             model = photoUrl,
             error = painterResource(R.drawable.pfp_unavailable),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(50.dp)
+                .size(45.dp)
                 .clip(RoundedCornerShape(15.dp))
         )
         Column(
@@ -44,23 +46,23 @@ fun PlayerDisplayTab(
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = username,
-                fontSize = 20.sp,
                 modifier = Modifier,
+                text = username,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
                 color = Color.White
             )
 
             if (gameModeIcon != null && rating != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier.size(13.dp),
                         painter = painterResource(gameModeIcon),
                         contentDescription = null
                     )
                     Text(
                         modifier = Modifier.padding(start = 2.dp),
                         text = rating.toString(),
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Light,
                         color = Color.White.copy(alpha = 0.7f)
                     )

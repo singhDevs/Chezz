@@ -1,22 +1,19 @@
 package com.singhDevs.chezz.activities
 
+import android.annotation.SuppressLint
 import android.content.Intent
-import android.media.Rating
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,14 +22,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -41,28 +45,29 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.github.bhlangonijr.chesslib.Board
+import com.github.bhlangonijr.chesslib.Piece
 import com.github.bhlangonijr.chesslib.Side
 import com.github.bhlangonijr.chesslib.move.Move
 import com.google.gson.Gson
 import com.singhDevs.chezz.ChezzApplication
 import com.singhDevs.chezz.R
-import com.singhDevs.chezz.UserRatingsOuterClass.UserRatings
+import com.singhDevs.chezz.components.ConfettiComposable
 import com.singhDevs.chezz.components.DrawDialog
 import com.singhDevs.chezz.components.LoadingDialog
 import com.singhDevs.chezz.components.MovesListComposable
 import com.singhDevs.chezz.components.PlayerDisplayTab
-import com.singhDevs.chezz.components.PopupDialog
+import com.singhDevs.chezz.components.PromotionOptionsComposable
+import com.singhDevs.chezz.components.ResignDialog
 import com.singhDevs.chezz.components.TimerComposable
 import com.singhDevs.chezz.data.RatingsRepository
 import com.singhDevs.chezz.models.GameMode
@@ -70,8 +75,9 @@ import com.singhDevs.chezz.models.GameOverResponse
 import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.models.Message
 import com.singhDevs.chezz.models.MessageTypes
+import com.singhDevs.chezz.models.Ratings
 import com.singhDevs.chezz.models.ResultType
-import com.singhDevs.chezz.models.chessboard.Board
+import com.singhDevs.chezz.models.UserWithoutCreds
 import com.singhDevs.chezz.network.GameService
 import com.singhDevs.chezz.network.JoinGameRequest
 import com.singhDevs.chezz.network.RetrofitClient
@@ -83,15 +89,20 @@ import com.singhDevs.chezz.utils.Constants
 import com.singhDevs.chezz.viewmodels.AuthViewModel
 import com.singhDevs.chezz.viewmodels.ChessBoardViewModel
 import com.singhDevs.chezz.viewmodels.ChessViewModelFactory
-import com.singhDevs.chezz.viewmodels.HomeActivityViewModel
-import com.singhDevs.chezz.viewmodels.HomeViewModelFactory
 import com.singhDevs.chezz.websocket.MessageActions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import nl.dionsegijn.konfetti.core.Angle
+import nl.dionsegijn.konfetti.core.Party
+import nl.dionsegijn.konfetti.core.Position
+import nl.dionsegijn.konfetti.core.emitter.Emitter
+import nl.dionsegijn.konfetti.core.models.Shape
+import nl.dionsegijn.konfetti.core.models.Size
+import java.util.concurrent.TimeUnit
 
-private const val TAG = "WebSocketClient"
+private const val TAG = "GameActivity"
 
 class GameActivity : ComponentActivity(), MessageActions {
     init {
@@ -100,34 +111,42 @@ class GameActivity : ComponentActivity(), MessageActions {
 
     private lateinit var ratingsRepository: RatingsRepository
     private lateinit var chessBoardViewModel: ChessBoardViewModel
-
     private lateinit var authViewModel: AuthViewModel
-
     private lateinit var gameService: GameService
 
     private var whiteTime by mutableLongStateOf(5 * 60 * 1000)
     private var blackTime by mutableLongStateOf(5 * 60 * 1000)
 
-    private var deviceBoard by mutableStateOf(com.github.bhlangonijr.chesslib.Board())
-    private var turn by mutableStateOf(Side.WHITE)
-    private var board by mutableStateOf(Board())
-    private var result: ResultType? by mutableStateOf(null)
+    private var deviceBoard by mutableStateOf(Board())
+    private var legalMoves by mutableStateOf<MutableList<Move>?>(null)
+
     private var gameOverResponse by mutableStateOf<GameOverResponse?>(null)
     private var onlineUsers: Int? by mutableStateOf(null)
-    private var cause: String? by mutableStateOf(null)
     private var color by mutableStateOf('a')
     private var isGameReady by mutableStateOf(false)
-    private var isTimerRunning by mutableStateOf(false)
+    private var isGameOver by mutableStateOf(false)
     private var showResignDialog by mutableStateOf(false)
     private var showDrawDialog by mutableStateOf(false)
     private var opponentColor by mutableStateOf('a')
-    private var opponent by mutableStateOf<com.singhDevs.chezz.models.User?>(null)
+
+    private var opponent by mutableStateOf<UserWithoutCreds?>(null)
+    private var user by mutableStateOf<User?>(null)
+
     private var gameDuration by mutableIntStateOf(0)
     private var gameType by mutableStateOf(GameType.BLITZ)
     private var gameMode by mutableStateOf(GameMode.RATED)
-    private var legalMoves by mutableStateOf<MutableList<Move>?>(null)
+    private var showPromotionOptions by mutableStateOf(false)
     private val movesList = mutableStateListOf<String>()
 
+    private var newRatings by mutableStateOf<Ratings?>(null)
+    private var oldRatings by mutableStateOf<Ratings?>(null)
+
+    private val textColor = Color(0xFFE0E0E0)
+    private val fieldBackground = Color(0xFF2A2A2A)
+
+
+    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -141,7 +160,7 @@ class GameActivity : ComponentActivity(), MessageActions {
         authViewModel = (application as ChezzApplication).authViewModel
 
         val token = intent.getStringExtra("token")
-        val user = intent.getParcelableExtra<User>("user")
+        user = intent.getParcelableExtra("user")
         val duration = intent.getIntExtra("duration", 5 * 60 * 1000)
         gameType = intent.getSerializableExtra("type") as GameType
         gameMode = intent.getSerializableExtra("mode") as GameMode
@@ -162,7 +181,46 @@ class GameActivity : ComponentActivity(), MessageActions {
 
         setContent {
             ChezzTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(
+                    topBar = {
+                        if (isGameReady) {
+                            CenterAlignedTopAppBar(
+                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                    containerColor = colorResource(R.color.game_background)
+                                ),
+                                title = {
+                                    Image(
+                                        modifier = Modifier.size(150.dp),
+                                        painter = painterResource(
+                                            when (gameMode) {
+                                                GameMode.CASUAL -> R.drawable.casual_banner
+                                                GameMode.RATED -> R.drawable.rated_banner
+                                            }
+                                        ),
+                                        contentDescription = null
+                                    )
+                                },
+                                navigationIcon = {
+                                    if(isGameOver){
+                                        IconButton(
+                                            onClick = { finish() }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                                contentDescription = null,
+                                                tint = colorResource(R.color.primary_amber)
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    newRatings = chessBoardViewModel.userRatings.collectAsState().value
+                    if (oldRatings == null) oldRatings = newRatings
+
                     if (!isGameReady) {
                         Box(
                             modifier = Modifier
@@ -205,143 +263,171 @@ class GameActivity : ComponentActivity(), MessageActions {
                             }
                         }
 
-                        Column(
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(colorResource(R.color.game_background)),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                                .background(colorResource(R.color.game_background))
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .align(Alignment.Center),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                if (opponent != null) {
-                                    PlayerDisplayTab(
-                                        username = opponent!!.username,
-                                        photoUrl = opponent!!.photoUrl ?: "",
-                                        gameModeIcon = when (gameMode) {
-                                            GameMode.CASUAL -> null
-                                            GameMode.RATED -> {
-                                                when (gameType) {
-                                                    GameType.BULLET -> R.drawable.ic_bullet
-                                                    GameType.BLITZ -> R.drawable.ic_blitz
-                                                    GameType.RAPID -> R.drawable.ic_rapid
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (!showPromotionOptions) {
+                                        if (opponent != null) {
+                                            PlayerDisplayTab(
+                                                username = opponent!!.username,
+                                                photoUrl = opponent!!.photoUrl ?: "",
+                                                gameModeIcon = when (gameMode) {
+                                                    GameMode.CASUAL -> null
+                                                    GameMode.RATED -> {
+                                                        when (gameType) {
+                                                            GameType.BULLET -> R.drawable.ic_bullet
+                                                            GameType.BLITZ -> R.drawable.ic_blitz
+                                                            GameType.RAPID -> R.drawable.ic_rapid
+                                                        }
+                                                    }
+                                                },
+                                                rating = when (gameMode) {
+                                                    GameMode.CASUAL -> null
+                                                    GameMode.RATED -> {
+                                                        when (gameType) {
+                                                            GameType.BULLET -> opponent!!.ratings?.bulletRating
+                                                            GameType.BLITZ -> opponent!!.ratings?.blitzRating
+                                                            GameType.RAPID -> opponent!!.ratings?.rapidRating
+                                                        }
+                                                    }
                                                 }
-                                            }
-                                        },
-                                        rating = when (gameMode) {
-                                            GameMode.CASUAL -> null
-                                            GameMode.RATED -> {
-                                                when (gameType) {
-                                                    GameType.BULLET -> opponent!!.bulletRating
-                                                    GameType.BLITZ -> opponent!!.blitzRating
-                                                    GameType.RAPID -> opponent!!.rapidRating
-                                                }
-                                            }
+                                            )
+                                        } else {
+                                            PlayerDisplayTab(
+                                                username = "Opponent",
+                                                photoUrl = ""
+                                            )
                                         }
-                                    )
-                                } else {
-                                    PlayerDisplayTab(
-                                        username = "Opponent",
-                                        photoUrl = ""
+                                    } else {
+                                        PromotionOptionsComposable(
+                                            color,
+                                            onPromotionPieceSelected = { piece ->
+                                                Log.d(
+                                                    TAG,
+                                                    "setting promotedPiece in viewModel to: $piece"
+                                                )
+                                                chessBoardViewModel.setPromotedPiece(piece)
+                                                showPromotionOptions = false
+                                            }
+                                        )
+                                    }
+                                    TimerComposable(
+                                        time = BasicUtils.millisToString(if (color == 'b') whiteTime else if (color == 'w') blackTime else 0),
+                                        isTimerPaused =
+                                            if (!isGameOver) {
+                                                if (color == 'b')
+                                                    deviceBoard.sideToMove != Side.WHITE  // If it's WHITE's turn, then TIMER is NOT PAUSED!
+                                                else
+                                                    deviceBoard.sideToMove != Side.BLACK
+                                            } else true,
+                                        isGameOver = isGameOver
                                     )
                                 }
-                                TimerComposable(
-                                    time = BasicUtils.millisToString(if (color == 'b') whiteTime else if (color == 'w') blackTime else 0),
-                                    isTimerRunning = isTimerRunning,
-                                    onTimerStopped = {
-                                        isTimerRunning = false
-                                    }
-                                )
-                            }
-                            ChessBoard(
-                                modifier = Modifier.padding(innerPadding),
-                                user = Constants.user,
-                                opponent = opponent!!,
-                                color = Constants.colorToSideMapping[color]!!,
-                                gameDuration = gameDuration,
-                                gameType = gameType,
-                                gameMode = gameMode,
-                                context = this@GameActivity,
-                                deviceBoard = deviceBoard,
-                                turn = turn,
-                                changeTurn = {
-                                    Log.d(TAG, "Previous turn: $turn")
-                                    turn = if (turn == Side.WHITE) Side.BLACK
-                                    else Side.WHITE
-                                    Log.d(TAG, "Turn changed to: $turn")
-                                },
-                                legalBoardMoves = legalMoves,
-                                result = result,
-                                cause = cause,
-                                gameOverResponse = gameOverResponse,
-                                viewModel = chessBoardViewModel,
-                                onMoveMade = { move ->
-                                    chessBoardViewModel.apply {
-                                        if (color == 'w') {
-                                            Log.d(TAG, "OUR move made, starting BLACK...")
-                                            _whiteTimer.pause()
-                                            _blackTimer.start()
-                                        } else if (color == 'b') {
-                                            Log.d(TAG, "OUR move made, starting WHITE...")
-                                            _blackTimer.pause()
-                                            _whiteTimer.start()
+                                ChessBoard(
+                                    context = this@GameActivity,
+                                    user = Constants.user,
+                                    opponent = opponent!!,
+                                    color = Constants.colorToSideMapping[color]!!,
+                                    gameDuration = gameDuration,
+                                    gameType = gameType,
+                                    gameMode = gameMode,
+                                    deviceBoard = deviceBoard,
+                                    legalBoardMoves = legalMoves,
+                                    onPromotionSquareTapped = {
+                                        showPromotionOptions = true
+                                    },
+                                    showPromotionOptions = showPromotionOptions,
+                                    onPromotionsOptionsDismiss = {
+                                        chessBoardViewModel.setPromotedPiece(Piece.NONE)
+                                        showPromotionOptions = false
+                                    },
+                                    gameOverResponse = gameOverResponse,
+                                    oldRatings = oldRatings,
+                                    viewModel = chessBoardViewModel,
+                                    onMoveMade = { moveStr ->
+                                        chessBoardViewModel.apply {
+                                            if (color == 'w') {
+                                                Log.d(TAG, "OUR move made, starting BLACK...")
+                                                _whiteTimer.pause()
+                                                _blackTimer.start()
+                                            } else if (color == 'b') {
+                                                Log.d(TAG, "OUR move made, starting WHITE...")
+                                                _blackTimer.pause()
+                                                _whiteTimer.start()
+                                            }
                                         }
-                                    }
-                                    movesList.add(move)
-                                    Log.d(
-                                        TAG,
-                                        "Size: ${movesList.size}\tLatest move added: ${if (movesList.isNotEmpty()) movesList[movesList.size - 1] else "movesList is empty!"}"
-                                    )
-                                },
-                                onNewGameClicked = {
-                                    isGameReady = false
-                                    lifecycleScope.launch {
-                                        this@GameActivity.apply {
-                                            cause = null
-                                            result = null
-                                            gameOverResponse = null
-                                            deviceBoard = com.github.bhlangonijr.chesslib.Board()
-                                            board = Board()
-                                            legalMoves = null
-                                            movesList.clear()
-                                        }
-                                        Constants.webSocketClient.webSocket?.close(
-                                            1000,
-                                            "Current game is finished, finding a new game."
-                                        )
-                                        joinGame(token, user, gameType, gameMode, duration)
-                                    }
-                                },
-                                onExportPGNClicked = { toggleProgressIndicator ->
-                                    Log.d(TAG, "Fetching PGN data...")
-                                    val gameService = RetrofitClient.gameServiceInstance
-                                    CoroutineScope(Dispatchers.IO).launch {
+                                        movesList.add(moveStr)
                                         Log.d(
                                             TAG,
-                                            "Hitting the /game/pgn endpoint, with token: $token, gameId: ${gameOverResponse!!.id}"
+                                            "Size: ${movesList.size}\tLatest move added: ${if (movesList.isNotEmpty()) movesList[movesList.size - 1] else "movesList is empty!"}"
                                         )
-                                        val response = gameService.getPGNData(
-                                            token = "Bearer $token",
-                                            gameId = gameOverResponse!!.id
-                                        )
+                                    },
+                                    onNewGameClicked = {
+                                        isGameReady = false
+                                        lifecycleScope.launch {
+                                            this@GameActivity.apply {
+                                                if (gameOverResponse != null && gameOverResponse!!.updatedRatings != null) {
+                                                    chessBoardViewModel.setUserRatings(
+                                                        gameOverResponse!!.updatedRatings!!.apply {
+                                                            Ratings(
+                                                                bulletRating,
+                                                                blitzRating,
+                                                                rapidRating
+                                                            )
+                                                        }
+                                                    )
+                                                }
 
-                                        if (!response.isSuccessful) {
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(
-                                                    this@GameActivity,
-                                                    "Error getting PGN data.",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+                                                chessBoardViewModel.initialize(duration.toLong())
+                                                opponent = null
+                                                gameOverResponse = null
+                                                isGameReady = false
+                                                isGameOver = false
+                                                deviceBoard = Board()
+                                                legalMoves = null
+                                                movesList.clear()
+
+                                                showDrawDialog = false
+                                                showResignDialog = false
+                                                showPromotionOptions = false
                                             }
-                                            toggleProgressIndicator()
-                                            return@launch
-                                        } else {
-                                            if (response.body() == null) {
+                                            Constants.webSocketClient.webSocket?.close(
+                                                1000,
+                                                "Current game is finished, finding a new game."
+                                            )
+                                            joinGame(token, user, gameType, gameMode, duration)
+                                        }
+                                    },
+                                    onExportPGNClicked = { toggleProgressIndicator ->
+                                        Log.d(TAG, "Fetching PGN data...")
+                                        val gameService = RetrofitClient.gameServiceInstance
+                                        CoroutineScope(Dispatchers.IO).launch {
+                                            Log.d(
+                                                TAG,
+                                                "Hitting the /game/pgn endpoint, with token: $token, gameId: ${gameOverResponse!!.id}"
+                                            )
+                                            val response = gameService.getPGNData(
+                                                token = "Bearer $token",
+                                                gameId = gameOverResponse!!.id
+                                            )
+
+                                            if (!response.isSuccessful) {
                                                 withContext(Dispatchers.Main) {
                                                     Toast.makeText(
                                                         this@GameActivity,
@@ -351,176 +437,247 @@ class GameActivity : ComponentActivity(), MessageActions {
                                                 }
                                                 toggleProgressIndicator()
                                                 return@launch
-                                            }
-                                            val pgnData = response.body()!!.pgn
-                                            Log.d(TAG, "PGN data: $pgnData")
-
-                                            withContext(Dispatchers.Main) {
-                                                val sendIntent = Intent().apply {
-                                                    action = Intent.ACTION_SEND
-                                                    putExtra(Intent.EXTRA_TEXT, pgnData)
-                                                    type = "text/plain"
+                                            } else {
+                                                if (response.body() == null) {
+                                                    withContext(Dispatchers.Main) {
+                                                        Toast.makeText(
+                                                            this@GameActivity,
+                                                            "Error getting PGN data.",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                    toggleProgressIndicator()
+                                                    return@launch
                                                 }
-                                                val shareIntent =
-                                                    Intent.createChooser(sendIntent, null)
-                                                startActivity(shareIntent)
+                                                val pgnData = response.body()!!.pgn
+                                                Log.d(TAG, "PGN data: $pgnData")
+
+                                                withContext(Dispatchers.Main) {
+                                                    val sendIntent = Intent().apply {
+                                                        action = Intent.ACTION_SEND
+                                                        putExtra(Intent.EXTRA_TEXT, pgnData)
+                                                        type = "text/plain"
+                                                    }
+                                                    val shareIntent =
+                                                        Intent.createChooser(sendIntent, null)
+                                                    startActivity(shareIntent)
+                                                }
+                                                toggleProgressIndicator()
                                             }
-                                            toggleProgressIndicator()
                                         }
                                     }
-                                }
-                            )
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                if (!showDrawDialog) {
-                                    PlayerDisplayTab(
-                                        username = Constants.user.username,
-                                        photoUrl = Constants.user.photoUrl ?: ""
-                                    )
-                                } else {
-                                    DrawDialog(
-                                        Modifier,
-                                        onDrawAccepted = {
-                                            val msg = Gson().toJson(
-                                                Message(type = MessageTypes.DRAW.value)
-                                            )
-                                            Constants.webSocketClient.webSocket?.send(msg)
-                                            showDrawDialog = false
-                                        },
-                                        onDrawRejected = {
-                                            showDrawDialog = false
-                                        }
-                                    )
-                                }
-                                TimerComposable(
-                                    time = BasicUtils.millisToString(if (color == 'w') whiteTime else if (color == 'b') blackTime else 0),
-                                    isTimerRunning = isTimerRunning,
-                                    onTimerStopped = {
-                                        isTimerRunning = false
-                                    }
                                 )
-                            }
-
-                            Text(
-                                modifier = Modifier
-                                    .padding(horizontal = 10.dp, vertical = 5.dp)
-                                    .fillMaxWidth(),
-                                text = "REPLAY",
-                                color = colorResource(R.color.replay_text),
-                                textAlign = TextAlign.Start,
-                                fontFamily = FontFamily.Monospace
-                            )
-
-                            if (movesList.isNotEmpty()) {
-                                val lazyListState: LazyListState = rememberLazyListState()
-                                MovesListComposable(movesList, lazyListState)
-                            } else {
-                                Spacer(
-                                    Modifier
-                                        .height(12.dp)
-                                        .fillMaxWidth()
-                                )
-                            }
-
-                            if(isTimerRunning){
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Button(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .padding(horizontal = 5.dp, vertical = 5.dp)
-                                            .drawBehind {
-                                                val borderSize = 3.dp.toPx()
-                                                drawLine(
-                                                    color = Color.LightGray,
-                                                    start = Offset(0f, size.height),
-                                                    end = Offset(size.width, size.height),
-                                                    strokeWidth = borderSize
-                                                )
+                                    if (!showDrawDialog) {
+                                        PlayerDisplayTab(
+                                            username = Constants.user.username,
+                                            photoUrl = Constants.user.photoUrl ?: "",
+                                            gameModeIcon = when (gameMode) {
+                                                GameMode.CASUAL -> null
+                                                GameMode.RATED -> {
+                                                    when (gameType) {
+                                                        GameType.BULLET -> R.drawable.ic_bullet
+                                                        GameType.BLITZ -> R.drawable.ic_blitz
+                                                        GameType.RAPID -> R.drawable.ic_rapid
+                                                    }
+                                                }
                                             },
-                                        shape = RoundedCornerShape(8.dp, 8.dp, 0.dp, 0.dp),
-                                        border = BorderStroke(
-                                            1.dp,
-                                            colorResource(R.color.game_buttons_color)
-                                        ),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = colorResource(
-                                                R.color.game_background
-                                            )
-                                        ),
-                                        onClick = {
-                                            Log.d(TAG, "Resignation button clicked.")
-                                            showResignDialog = true
-                                        }) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            horizontalArrangement = Arrangement.Center,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Image(
-                                                modifier = Modifier.size(30.dp),
-                                                painter = painterResource(R.drawable.ic_resign),
-                                                contentDescription = null
-                                            )
-                                            Text(
-                                                modifier = Modifier.padding(start = 15.dp),
-                                                text = "RESIGN",
-                                                fontSize = 18.sp,
-                                                fontFamily = FontFamily.Monospace
-                                            )
-                                        }
+                                            rating = when (gameMode) {
+                                                GameMode.CASUAL -> null
+                                                GameMode.RATED -> {
+                                                    when (gameType) {
+                                                        GameType.BULLET -> newRatings?.bulletRating
+                                                        GameType.BLITZ -> newRatings?.blitzRating
+                                                        GameType.RAPID -> newRatings?.rapidRating
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    } else {
+                                        DrawDialog(
+                                            Modifier,
+                                            onDrawAccepted = {
+                                                val msg = Gson().toJson(
+                                                    Message(type = MessageTypes.DRAW.value)
+                                                )
+                                                Constants.webSocketClient.webSocket?.send(msg)
+                                                showDrawDialog = false
+                                            },
+                                            onDrawRejected = {
+                                                showDrawDialog = false
+                                            }
+                                        )
                                     }
-                                    Button(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .padding(horizontal = 5.dp, vertical = 5.dp)
-                                            .drawBehind {
-                                                val borderSize = 3.dp.toPx()
-                                                drawLine(
-                                                    color = Color.LightGray,
-                                                    start = Offset(0f, size.height),
-                                                    end = Offset(size.width, size.height),
-                                                    strokeWidth = borderSize
-                                                )
+                                    TimerComposable(
+                                        time = BasicUtils.millisToString(if (color == 'w') whiteTime else if (color == 'b') blackTime else 0),
+                                        isTimerPaused =
+                                            if (!isGameOver) {
+                                                if (color == 'b')
+                                                    deviceBoard.sideToMove != Side.BLACK  // If it's BLACK's turn, then TIMER is NOT PAUSED!
+                                                else
+                                                    deviceBoard.sideToMove != Side.WHITE
+                                            } else true,
+                                        isGameOver = isGameOver
+                                    )
+                                }
+
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(95.dp)
+                                        .padding(5.dp)
+                                        .clip(RoundedCornerShape(5.dp))
+                                        .background(colorResource(R.color.see_more_btn)),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    if (movesList.isNotEmpty()) {
+                                        Text(
+                                            modifier = Modifier
+                                                .padding(start = 15.dp, top = 10.dp)
+                                                .fillMaxWidth(),
+                                            text = "Moves",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color.White,
+                                            textAlign = TextAlign.Start
+                                        )
+
+                                        val lazyListState: LazyListState = rememberLazyListState()
+                                        MovesListComposable(movesList, lazyListState)
+                                    } else {
+                                        Text(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            text = "Game moves are shown here...",
+                                            textAlign = TextAlign.Center,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color.White,
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (!isGameOver) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 25.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        IconButton(
+                                            onClick = {
+                                                Log.d(TAG, "Resignation button clicked.")
+                                                showResignDialog = true
                                             },
-                                        shape = RoundedCornerShape(8.dp, 8.dp, 0.dp, 0.dp),
-                                        border = BorderStroke(
-                                            1.dp,
-                                            colorResource(R.color.game_buttons_color)
-                                        ),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = colorResource(
-                                                R.color.draw_button_color
-                                            )
-                                        ),
-                                        onClick = {
-                                            Log.d(TAG, "Draw button clicked.")
-                                            showDrawDialog = true
-                                        }) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            horizontalArrangement = Arrangement.Center,
-                                            verticalAlignment = Alignment.CenterVertically
+                                            modifier = Modifier
+                                                .size(52.dp)
+                                                .clip(CircleShape)
+                                                .background(fieldBackground)
                                         ) {
-                                            Image(
-                                                modifier = Modifier.size(30.dp),
-                                                painter = painterResource(R.drawable.ic_draw),
-                                                contentDescription = null
-                                            )
-                                            Text(
-                                                modifier = Modifier.padding(start = 15.dp),
-                                                text = "DRAW",
-                                                fontSize = 18.sp,
-                                                fontFamily = FontFamily.Monospace
+                                            Icon(
+                                                modifier = Modifier.padding(15.dp),
+                                                painter = painterResource(R.drawable.ic_resign),
+                                                contentDescription = null,
+                                                tint = textColor
                                             )
                                         }
+                                        Text(
+                                            modifier = Modifier.padding(top = 5.dp),
+                                            text = "Resign",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = textColor
+                                        )
+                                    }
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        IconButton(
+                                            onClick = {
+                                                Log.d(TAG, "Draw button clicked.")
+                                                showDrawDialog = true
+                                            },
+                                            modifier = Modifier
+                                                .size(52.dp)
+                                                .clip(CircleShape)
+                                                .background(fieldBackground)
+                                        ) {
+                                            Icon(
+                                                modifier = Modifier.padding(15.dp),
+                                                painter = painterResource(R.drawable.ic_draw),
+                                                contentDescription = null,
+                                                tint = textColor
+                                            )
+                                        }
+                                        Text(
+                                            modifier = Modifier.padding(top = 5.dp),
+                                            text = "Draw",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = textColor
+                                        )
+                                    }
+                                }
+
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 25.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            if (gameOverResponse?.winningUser == user?.username)
+                                                chessBoardViewModel.festive()
+                                            else
+                                                chessBoardViewModel.rain(
+                                                    Party(
+                                                        speed = 10f,
+                                                        maxSpeed = 30f,
+                                                        damping = 0.9f,
+                                                        angle = Angle.BOTTOM,
+                                                        spread = 30,
+                                                        colors = listOf(0x0000FF),
+                                                        emitter = Emitter(
+                                                            duration = 5,
+                                                            TimeUnit.SECONDS
+                                                        ).perSecond(100),
+                                                        position = Position.Relative(0.0, 0.0)
+                                                            .between(Position.Relative(1.0, 0.0)),
+                                                        size = listOf(Size.MEDIUM),
+                                                        shapes = listOf(Shape.Circle)
+                                                    )
+                                                )
+                                        },
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .background(
+                                                color = fieldBackground,
+                                                shape = CircleShape
+                                            )
+                                            .clip(CircleShape)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(
+                                                id =
+                                                    if (gameOverResponse?.winningUser == user?.username) R.drawable.ic_party_popper
+                                                    else R.drawable.ic_rain_cloud
+                                            ),
+                                            contentDescription = null,
+                                            modifier = Modifier.padding(18.dp),
+                                            tint = Color.Unspecified
+                                        )
                                     }
                                 }
                             }
@@ -528,9 +685,9 @@ class GameActivity : ComponentActivity(), MessageActions {
                     }
 
                     if (showResignDialog) {
-                        PopupDialog(
+                        ResignDialog(
                             message = "Are you sure you want to resign?",
-                            onClickOutside = { showResignDialog = false },
+                            onDismiss = { showResignDialog = false },
                             negativeButtonAction = { showResignDialog = false },
                             positiveButtonAction = {
                                 val msg = Gson().toJson(
@@ -541,6 +698,8 @@ class GameActivity : ComponentActivity(), MessageActions {
                             }
                         )
                     }
+
+                    ConfettiComposable(viewModel = chessBoardViewModel)
                 }
             }
         }
@@ -574,6 +733,7 @@ class GameActivity : ComponentActivity(), MessageActions {
                 } else {
                     Toast.makeText(this@GameActivity, "Error joining the game.", Toast.LENGTH_SHORT)
                         .show()
+                    finish()
                 }
             }
             return
@@ -595,6 +755,7 @@ class GameActivity : ComponentActivity(), MessageActions {
             gameMode,
             gameType
         )
+
     }
 
     override fun onInfoReceived(onlineUsers: Int) {
@@ -603,7 +764,7 @@ class GameActivity : ComponentActivity(), MessageActions {
 
     override fun onGameStart(
         color: Char,
-        opponent: com.singhDevs.chezz.models.User,
+        opponent: UserWithoutCreds,
         duration: Int,
         gameType: GameType
     ) {
@@ -613,20 +774,25 @@ class GameActivity : ComponentActivity(), MessageActions {
         this.opponent = opponent
         this.gameDuration = duration / (60 * 1000)
         this.gameType = gameType
+        this.legalMoves = this.deviceBoard.legalMoves()
     }
 
     override fun onMoveMade(
-        board: Board,
         move: com.singhDevs.chezz.models.Move,
         piece: Char,
         whiteTime: Long,
         blackTime: Long
     ) {
-        Log.d(TAG, "onMoveMade: $board")
-
-        val moveString = if (move.kingSideCastle) "O-O";
-        else if (move.queenSideCastle) "O-O-O";
-        else BasicUtils.generateMoveString(move.from, move.to, piece, opponentColor)
+        val moveString = if (move.kingSideCastle) "O-O"
+        else if (move.queenSideCastle) "O-O-O"
+        else if (move.promotion != null) BasicUtils.generateMoveString(
+            move.from,
+            move.to,
+            "$piece",
+            opponentColor,
+            move.promotion
+        )
+        else BasicUtils.generateMoveString(move.from, move.to, "$piece", opponentColor)
 
         movesList.add(moveString)
         Log.d(
@@ -638,24 +804,34 @@ class GameActivity : ComponentActivity(), MessageActions {
             onServerTimeSync(whiteTime, blackTime)
             if (color == 'w') {
                 Log.d(TAG, "OPPONENT move made, starting WHITE...")
-                turn = Side.WHITE
                 _whiteTimer.start()
                 _blackTimer.pause()
             } else if (color == 'b') {
                 Log.d(TAG, "OPPONENT move made, starting BLACK...")
-                turn = Side.BLACK
                 _blackTimer.start()
                 _whiteTimer.pause()
             }
         }
 
-        deviceBoard.doMove(
-            Move(
-                Constants.charToSquareMapping[move.from],
-                Constants.charToSquareMapping[move.to]
+        if (move.promotion != null) {
+            deviceBoard.doMove(
+                Move(
+                    Constants.charToSquareMapping[move.from],
+                    Constants.charToSquareMapping[move.to],
+                    if (opponentColor == 'w')
+                        Constants.whiteCharPieceToPiece[move.promotion.toCharArray()[0]]
+                    else
+                        Constants.blackCharPieceToPiece[move.promotion.toCharArray()[0]]
+                )
             )
-        )
-        this.board = board
+        } else {
+            deviceBoard.doMove(
+                Move(
+                    Constants.charToSquareMapping[move.from],
+                    Constants.charToSquareMapping[move.to]
+                )
+            )
+        }
         this.legalMoves = deviceBoard.legalMoves()
 
         Log.d(TAG, "onMoveMade, printing deviceBoard:-\n$deviceBoard")
@@ -664,28 +840,68 @@ class GameActivity : ComponentActivity(), MessageActions {
         this.legalMoves?.forEach { legalMove ->
             Log.d(TAG, legalMove.toString())
         }
+
     }
 
     override fun onGameOver(gameOverResponse: GameOverResponse) {
-        Log.d(TAG, "GAME OVER - result: $result")
+        Log.d(TAG, "GAME OVER")
         chessBoardViewModel.stopTimers()
-        this.result = gameOverResponse.result
-        this.cause = gameOverResponse.cause
+        oldRatings = newRatings
         this.gameOverResponse = gameOverResponse
+        this.isGameOver = true
+
+        if(gameOverResponse.lastPlayerToMove != user?.id && gameOverResponse.move.from != "~" && gameOverResponse.move.to != "~"){
+            Log.d(TAG, "Doing the move for the player who didn't make the last move...")
+            if (gameOverResponse.move.promotion != null) {
+                deviceBoard.doMove(
+                    Move(
+                        Constants.charToSquareMapping[gameOverResponse.move.from],
+                        Constants.charToSquareMapping[gameOverResponse.move.to],
+                        if (opponentColor == 'w')
+                            Constants.whiteCharPieceToPiece[gameOverResponse.move.promotion.toCharArray()[0]]
+                        else
+                            Constants.blackCharPieceToPiece[gameOverResponse.move.promotion.toCharArray()[0]]
+                    )
+                )
+            } else {
+                deviceBoard.doMove(
+                    Move(
+                        Constants.charToSquareMapping[gameOverResponse.move.from],
+                        Constants.charToSquareMapping[gameOverResponse.move.to]
+                    )
+                )
+            }
+            this.legalMoves = deviceBoard.legalMoves()
+        }
+
+        if(gameOverResponse.winningUser == user?.username){
+            chessBoardViewModel.festive()
+        }
 
         val move = gameOverResponse.move
-
-        if ((result == ResultType.WHITE && color == 'w') || (result == ResultType.BLACK && color == 'b') || result == ResultType.DRAW) {
+        if ((gameOverResponse.result == ResultType.WHITE && color == 'w') || (gameOverResponse.result == ResultType.BLACK && color == 'b') || gameOverResponse.result == ResultType.DRAW) {
             return
         } else {
-            movesList.add(
-                BasicUtils.generateMoveString(
-                    move.from,
-                    move.to,
-                    move.piece[0],
-                    opponentColor
+            if (move.promotion != null) {
+                movesList.add(
+                    BasicUtils.generateMoveString(
+                        move.from,
+                        move.to,
+                        move.piece,
+                        opponentColor,
+                        move.promotion
+                    )
                 )
-            )
+            } else {
+                movesList.add(
+                    BasicUtils.generateMoveString(
+                        move.from,
+                        move.to,
+                        move.piece,
+                        opponentColor
+                    )
+                )
+            }
             Log.d(
                 TAG,
                 "Size: ${movesList.size}\tLatest move added: ${if (movesList.isNotEmpty()) movesList[movesList.size - 1] else "movesList is empty!"}"
@@ -701,4 +917,171 @@ class GameActivity : ComponentActivity(), MessageActions {
         super.onDestroy()
         Constants.webSocketClient.webSocket?.close(1000, "Activity destroyed")
     }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showSystemUi = true)
+@Composable
+private fun RDPreview() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        /*IconButton(
+            onClick = {
+                Log.d(TAG, "Resignation button clicked.")
+                showResignDialog = true
+            },
+            modifier = Modifier
+                .size(60.dp)
+                .clip(CircleShape)
+                .background(fieldBackground)
+        ) {
+            Icon(
+                modifier = Modifier.padding(15.dp),
+                painter = painterResource(R.drawable.ic_resign),
+                contentDescription = null,
+                tint = textColor
+            )
+        }*/
+    }
+    /*CenterAlignedTopAppBar(
+        modifier = Modifier.fillMaxWidth(),
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = colorResource(R.color.game_background)
+        ),
+        title = {
+            *//*Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {*//*
+            Image(
+                modifier = Modifier.size(200.dp),
+                painter = painterResource(
+                    when (GameMode.CASUAL) {
+                        GameMode.CASUAL -> R.drawable.casual_banner
+                        GameMode.RATED -> R.drawable.rated_banner
+                    }
+                ),
+                contentDescription = null
+            )
+//            }
+        }
+    )*/
+    /*Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                IconButton(
+                    onClick = {
+                        Log.d(TAG, "Resignation button clicked.")
+//                showResignDialog = true
+                    },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(fieldBackground)
+                ) {
+                    Icon(
+                        modifier = Modifier.padding(5.dp),
+                        painter = painterResource(R.drawable.ic_resign),
+                        contentDescription = null,
+                        tint = textColor
+                    )
+                }
+                Text(
+                    modifier = Modifier.padding(top = 5.dp),
+                    text = "Resign",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Light,
+                    color = textColor
+                )
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                IconButton(
+                    onClick = {
+                        Log.d(TAG, "Draw button clicked.")
+//                showDrawDialog = true
+                    },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(fieldBackground)
+                ) {
+                    Icon(
+                        modifier = Modifier.padding(5.dp),
+                        painter = painterResource(R.drawable.ic_draw),
+                        contentDescription = null,
+                        tint = textColor
+                    )
+                }
+                Text(
+                    modifier = Modifier.padding(top = 5.dp),
+                    text = "Draw",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Light,
+                    color = textColor
+                )
+            }
+        }
+        *//*Button(
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 5.dp),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = fieldBackground),
+            onClick = {
+                Log.d(TAG, "Resignation button clicked.")
+//                showResignDialog = true
+            }) {
+            Column(
+                modifier = Modifier.padding(15.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    modifier = Modifier.size(20.dp),
+                    painter = painterResource(R.drawable.ic_resign),
+                    tint = textColor,
+                    contentDescription = null
+                )
+
+            }
+        }*//*
+        *//*Button(
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 5.dp),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = fieldBackground),
+            onClick = {
+                Log.d(TAG, "Draw button clicked.")
+//                showDrawDialog = true
+            }) {
+            Column(
+                modifier = Modifier.padding(15.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    modifier = Modifier.size(20.dp),
+                    painter = painterResource(R.drawable.ic_draw),
+                    tint = textColor,
+                    contentDescription = null
+                )
+                Text(
+                    modifier = Modifier.padding(top = 3.dp),
+                    text = "Draw",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Light
+                )
+            }
+        }*//*
+    }*/
 }

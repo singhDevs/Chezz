@@ -33,6 +33,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -49,6 +50,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -71,6 +73,7 @@ import com.singhDevs.chezz.models.Game
 import com.singhDevs.chezz.models.GameMode
 import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.models.Ratings
+import com.singhDevs.chezz.network.RatingHistoryItem
 import com.singhDevs.chezz.network.User
 import com.singhDevs.chezz.viewmodels.HomeActivityViewModel
 import com.singhDevs.chezz.viewmodels.HomeViewModelFactory
@@ -82,12 +85,18 @@ private const val TAG = "MainScreen"
 fun MainScreen(
     modifier: Modifier = Modifier,
     user: User,
+    token: String,
     viewModel: HomeActivityViewModel,
+    showProfileDialog: Boolean,
+    dismissProfileDialog: () -> Unit,
     onPlayGameClicked: (gameDuration: Int, gameMode: GameMode, gameType: GameType) -> Unit,
     onSigningOut: () -> Unit,
-    games: List<Game>? = null
+    games: List<Game>? = null,
+    bulletRatingHistory: List<RatingHistoryItem>? = null,
+    blitzRatingHistory: List<RatingHistoryItem>? = null,
+    rapidRatingHistory: List<RatingHistoryItem>? = null
 ) {
-    val ratings by viewModel.ratings.collectAsState()
+    val ratings by viewModel.ratingsFlow.collectAsState()
 
     val context = LocalContext.current
     var btnExpanded by remember { mutableStateOf(false) }
@@ -97,8 +106,8 @@ fun MainScreen(
     var gameType by remember { mutableStateOf(GameType.BLITZ) }
     var shouldShowMoreGamesTitle by remember { mutableStateOf(false) }
 
-    var showProfileDialog by remember { mutableStateOf(false) }
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val surfaceColor = Color(0xFF1E1E1E)
+
 
     Column(
         modifier = Modifier
@@ -106,45 +115,6 @@ fun MainScreen(
             .verticalScroll(rememberScrollState())
             .background(colorResource(R.color.background))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 10.dp, end = 10.dp)
-                .background(colorResource(R.color.background)),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                modifier = Modifier.size(35.dp),
-                painter = painterResource(R.drawable.ic_blitz),
-                contentDescription = null
-            )
-            Image(
-                modifier = Modifier.size(110.dp),
-                painter = painterResource(R.drawable.ic_chezz_logo),
-                contentDescription = null
-            )
-            IconButton(
-                onClick = { showProfileDialog = true },
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF2A2A2A))
-            ) {
-                AsyncImage(
-                    modifier = Modifier
-                        .size(45.dp)
-                        .clip(RoundedCornerShape(percent = 20))
-                        .clickable {
-                            showProfileDialog = true
-                        },
-                    model = user.photoUrl,
-                    error = painterResource(R.drawable.pfp_unavailable),
-                    contentDescription = null
-                )
-            }
-        }
-
         Column(
             modifier = modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -180,7 +150,7 @@ fun MainScreen(
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(vertical = 22.dp, horizontal = 5.dp)
+                        .padding(vertical = 18.dp, horizontal = 5.dp)
                         .animateContentSize()
                 ) {
                     Row(
@@ -194,8 +164,7 @@ fun MainScreen(
                                 .padding(horizontal = 5.dp)
                                 .weight(1f),
                             text = "Play Game",
-                            fontSize = 25.sp,
-                            fontWeight = FontWeight.SemiBold
+                            style = MaterialTheme.typography.titleMedium
                         )
                         Row(
                             modifier = Modifier
@@ -233,19 +202,11 @@ fun MainScreen(
                                         else -> "5 min"
                                     },
                                 color = Color.White,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Light
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Light),
                             )
                             AnimatedDropdownArrow(expanded = btnExpanded)
                         }
                     }
-
-                    /*if (btnExpanded) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 20.dp),
-                            thickness = 0.5.dp
-                        )
-                    }*/
 
                     var question by remember { mutableIntStateOf(1) }
                     if (btnExpanded) {
@@ -280,7 +241,7 @@ fun MainScreen(
                     .then(if (games.isNullOrEmpty()) Modifier.fillMaxHeight(0.4f) else Modifier.wrapContentHeight())
                     .padding(5.dp)
                     .clip(RoundedCornerShape(percent = 5))
-                    .background(colorResource(R.color.secondary_dark))
+                    .background(surfaceColor)
             ) {
                 if (games != null) {
                     Log.d(TAG, "Games: $games")
@@ -312,8 +273,7 @@ fun MainScreen(
                     } else {
                         Text(
                             text = "Recent Games",
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Light,
+                            style = MaterialTheme.typography.titleLarge,
                             color = Color.White,
                             modifier = Modifier.padding(start = 20.dp, top = 20.dp)
                         )
@@ -326,7 +286,9 @@ fun MainScreen(
                         ) {
                             items(games.take(5)) {
                                 GameHistoryComposable(
+                                    context,
                                     it,
+                                    token,
                                     user.username
                                 )
                             }
@@ -340,12 +302,13 @@ fun MainScreen(
                                         shape = RoundedCornerShape(percent = 28),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = colorResource(
-                                                R.color.see_more_btn
+                                                R.color.secondary_dark
                                             )
                                         ),
                                         onClick = {
                                             val intent = Intent(context, GameHistoryActivity::class.java)
                                             intent.putExtra("user", user)
+                                            intent.putExtra("token", token)
                                             intent.putExtra("gamesList", games as Serializable)
                                             context.startActivity(intent)
                                         }
@@ -353,9 +316,8 @@ fun MainScreen(
                                         Text(
                                             modifier = Modifier.padding(vertical = 2.5.dp),
                                             text = "see more Games...",
-                                            fontSize = 20.sp,
                                             color = Color.White,
-                                            fontWeight = FontWeight.Light
+                                            style = MaterialTheme.typography.bodyMedium
                                         )
                                     }
                                 }
@@ -398,14 +360,16 @@ fun MainScreen(
             ) {
                 Text(
                     text = "Your Performance",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Light,
+                    style = MaterialTheme.typography.titleLarge,
                     color = Color.White,
                     modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
                 )
 
                 RatingHistoryChart(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    bulletData = bulletRatingHistory ?: emptyList(),
+                    blitzData = blitzRatingHistory ?: emptyList(),
+                    rapidData = rapidRatingHistory ?: emptyList()
                 )
             }
         }
@@ -415,11 +379,12 @@ fun MainScreen(
         PlayerProfileDialog(
             context = context,
             user = user,
+            token = token,
             games = games,
-            onDismiss = { showProfileDialog = false },
+            onDismiss = dismissProfileDialog,
             onSignOut = {
                 Log.d(TAG, "onSignOut clicked, signing out...")
-                showProfileDialog = false
+                dismissProfileDialog()
                 onSigningOut()
                 /*
                 Do sign out cleanup, show a loading screen showing you are signing out

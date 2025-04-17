@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,8 +33,7 @@ fun GameModeComposable(onGameModeSelected: (gameMode: GameMode) -> Unit) {
     ) {
         Text(
             text = "Rated or Casual?",
-            fontWeight = FontWeight.Thin,
-            fontSize = 25.sp,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Light),
             color = Color.White
         )
         Row(
@@ -54,7 +54,7 @@ fun GameModeComposable(onGameModeSelected: (gameMode: GameMode) -> Unit) {
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                         .background(colorResource(R.color.bg_rated_btn)),
                     text = "Rated",
-                    fontSize = 20.sp,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     color = colorResource(R.color.bg_rated_txt)
                 )
             }
@@ -70,7 +70,7 @@ fun GameModeComposable(onGameModeSelected: (gameMode: GameMode) -> Unit) {
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                         .background(colorResource(R.color.bg_casual_btn)),
                     text = "Casual",
-                    fontSize = 18.sp,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     color = colorResource(R.color.bg_casual_txt)
                 )
             }
@@ -81,5 +81,5 @@ fun GameModeComposable(onGameModeSelected: (gameMode: GameMode) -> Unit) {
 @Preview
 @Composable
 private fun GameModeComposablePreview() {
-    GameModeComposable{}
+    GameModeComposable {}
 }

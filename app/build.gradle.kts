@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.compose)
     id("com.google.protobuf") version "0.9.4"
+    alias(libs.plugins.google.gms.google.services)
 }
 
 val bundleId = "com.singhDevs.chezz"
@@ -40,7 +41,7 @@ android {
         )
 
         applicationId = "com.singhDevs.chezz"
-        minSdk = 28
+        minSdk = 31
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -58,9 +59,29 @@ android {
         }
     }
 
+    signingConfigs {
+        signingConfigs {
+            create("release") {
+                storeFile = file("C:\\Users\\Guransh Singh\\ssh\\app-release-key-store.jks")
+                storePassword = "\$!ngHdEVsachrajterikudrat@kAlJ!"
+                keyAlias = "app-key"
+                keyPassword = "$!ngHdEVspanthkijeet@kAlJ!"
+            }
+        }
+    }
+
     buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+
         release {
-            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -113,6 +134,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.espresso.core)
+    implementation(libs.firebase.messaging)
+    implementation(libs.androidx.runtime.livedata)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -158,4 +181,7 @@ dependencies {
 
     //Room
     implementation("androidx.room:room-runtime:2.6.1")
+
+    //Konfetti
+    implementation("nl.dionsegijn:konfetti-compose:2.0.5")
 }

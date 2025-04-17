@@ -1,16 +1,19 @@
 package com.singhDevs.chezz.viewmodels
 
 import android.util.Log
-import androidx.datastore.core.DataStore
-import androidx.datastore.dataStore
+import androidx.compose.runtime.State
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.github.bhlangonijr.chesslib.Piece
 import com.singhDevs.chezz.UserRatingsOuterClass
 import com.singhDevs.chezz.UserRatingsOuterClass.UserRatings
+import com.singhDevs.chezz.composeUtils.Presets
 import com.singhDevs.chezz.data.RatingsRepository
 import com.singhDevs.chezz.models.GameType
+import com.singhDevs.chezz.models.Ratings
 import com.singhDevs.chezz.timer.ChessTimer
 import com.singhDevs.chezz.timer.TimerCallbacks
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,10 +22,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import nl.dionsegijn.konfetti.core.Party
+import nl.dionsegijn.konfetti.core.models.Shape
 
 private const val TAG = "ChessBoardViewModel"
 
-class ChessBoardViewModel (private val ratingsRepository: RatingsRepository) : ViewModel(), TimerCallbacks {
+class ChessBoardViewModel(private val ratingsRepository: RatingsRepository) : ViewModel(),
+    TimerCallbacks {
     private var gameTime: Long = 0
 
     private var initialRatings = MutableStateFlow<UserRatings?>(null)
@@ -34,14 +40,52 @@ class ChessBoardViewModel (private val ratingsRepository: RatingsRepository) : V
     lateinit var whiteCurrentTime: MutableLiveData<Long>
     lateinit var blackCurrentTime: MutableLiveData<Long>
 
-    suspend fun initialize(gameTime: Long){
+    private val _state = MutableLiveData<State>(State.Idle)
+    val state: LiveData<State> = _state
+
+
+    suspend fun initialize(gameTime: Long) {
         this.gameTime = gameTime
         _whiteTimer = ChessTimer(gameTime, this)
         _blackTimer = ChessTimer(gameTime, this)
         whiteCurrentTime = MutableLiveData(gameTime)
         blackCurrentTime = MutableLiveData(gameTime)
         initialRatings.value = ratingsRepository.getCurrentRatings()
+        _userRatings.value = Ratings(
+            initialRatings.value!!.bulletRating,
+            initialRatings.value!!.blitzRating,
+            initialRatings.value!!.rapidRating
+        )
     }
+
+    fun festive(drawable: Shape.DrawableShape? = null) {
+        Log.d(TAG, "festive() called")
+        _state.value = State.Idle
+        _state.value = State.Started(Presets.festive(drawable))
+    }
+
+    fun explode() {
+        _state.value = State.Started(Presets.explode())
+    }
+
+    fun parade() {
+        _state.value = State.Started(Presets.parade())
+    }
+
+    fun rain(party: Party? = null) {
+        _state.value = State.Started(Presets.rain(party))
+    }
+
+    fun ended() {
+        _state.value = State.Idle
+    }
+
+    private var _userRatings: MutableStateFlow<Ratings?> = MutableStateFlow(null)
+    val userRatings: StateFlow<Ratings?> = _userRatings.asStateFlow()
+    fun setUserRatings(ratings: Ratings){
+        _userRatings.value = ratings
+    }
+
 
     fun handleTimers() {
         if (_whiteTimer.isRunning) {
@@ -80,12 +124,28 @@ class ChessBoardViewModel (private val ratingsRepository: RatingsRepository) : V
         }
     }
 
-    val ratings: StateFlow<UserRatingsOuterClass.UserRatings> = ratingsRepository.ratingsFlow
+    val ratings: StateFlow<UserRatings> = ratingsRepository.ratingsFlow
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(),
-            initialValue = UserRatingsOuterClass.UserRatings.getDefaultInstance()
+            initialValue = UserRatings.getDefaultInstance()
         )
+
+    sealed class State {
+        class Started(val party: List<Party>) : State()
+        object Idle : State()
+    }
+
+    private var _promotedPiece: MutableStateFlow<Piece> = MutableStateFlow(Piece.NONE)
+    val promotedPiece: StateFlow<Piece> = _promotedPiece.asStateFlow()
+    fun setPromotedPiece(piece: Piece) {
+        _promotedPiece.value = piece
+    }
+    fun resetPromotedPiece(){
+        _promotedPiece.value = Piece.NONE
+    }
+
+
 }
 
 class ChessViewModelFactory(

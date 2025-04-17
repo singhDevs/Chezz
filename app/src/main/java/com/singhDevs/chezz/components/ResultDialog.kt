@@ -17,15 +17,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Clear
-import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
@@ -50,31 +47,31 @@ import coil3.compose.AsyncImage
 import com.singhDevs.chezz.R
 import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.models.ResultType
-import com.singhDevs.chezz.models.User
+import com.singhDevs.chezz.models.UserWithoutCreds
 import com.singhDevs.chezz.viewmodels.ChessBoardViewModel
 
 private const val TAG = "ResultDialog"
+
 @Composable
 fun ResultDialog(
     context: Context,
     result: ResultType,
     cause: String,
     newRating: Int?,
+    oldRating: Int?,
     gameType: GameType,
     gameDuration: Int,
-    playerWhite: User,
-    playerBlack: User,
+    playerWhite: UserWithoutCreds,
+    playerBlack: UserWithoutCreds,
     winningUsername: String,
     username: String,
     viewModel: ChessBoardViewModel,
     onDismissRequest: () -> Unit,
-    onShareClicked: () -> Unit,
-    onRematchClicked: () -> Unit,
+    onViewOpponentProfileClicked: () -> Unit,
     onNewGameClicked: () -> Unit,
     onExportPGNClicked: (toggleProgressIndicator: () -> Unit) -> Unit,
 ) {
-    val initialRatings by viewModel._initialRatings.collectAsState()
-    if(newRating != null) viewModel.updateRating(gameType, newRating)
+    if (newRating != null) viewModel.updateRating(gameType, newRating)
     var pgnBtnClicked by remember { mutableStateOf(false) }
 
     Dialog(
@@ -98,68 +95,41 @@ fun ResultDialog(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
+                            .padding(horizontal = 10.dp)
                     ) {
-                        IconButton(
-                            modifier = Modifier.size(23.dp),
-                            onClick = { onDismissRequest() }
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(
-                                Icons.Rounded.Clear,
-                                contentDescription = null
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text =
                                     if (result == ResultType.DRAW) "Draw"
                                     else if (winningUsername == username) "You Won!"
                                     else "You Lost",
-                                fontSize = 27.sp,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.headlineLarge,
                                 color =
                                     if (result == ResultType.DRAW) colorResource(R.color.text_secondary)
                                     else if (winningUsername == username) colorResource(R.color.golden)
                                     else colorResource(R.color.you_lost_text)
                             )
                             Text(
-                                text =
-                                    if (cause.split(' ').size > 1 && cause.split(' ')[1] == "resigned") {
-                                        "by Resignation"
-                                    } else if (cause == "TIMEOUT") {
-                                        "by Timeout"
-                                    } else {
-                                        if (result == ResultType.DRAW) {
-                                            when (cause) {
-                                                "stalemate" -> "by stalemate"
-                                                "insufficient material" -> "by Insufficient Material"
-                                                else -> "by Agreement"
-                                            }
-                                        } else {
-                                            "by CHECKMATE"
-                                        }
-                                    },
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                text = cause,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = colorResource(R.color.text_secondary)
                             )
                         }
-                        IconButton(
-                            modifier = Modifier.size(23.dp),
-                            onClick = onShareClicked
-                        ) {
-                            Icon(
-                                Icons.Rounded.Share,
-                                contentDescription = null
-                            )
-                        }
+                        CloseButton(
+                            modifier = Modifier
+                                .padding(top = 5.dp)
+                                .size(30.dp)
+                                .align(Alignment.TopEnd),
+                            onDismiss = onDismissRequest
+                        )
                     }
+
 
                     //Logo and usernames
                     Row(
@@ -197,7 +167,7 @@ fun ResultDialog(
                                 textAlign = TextAlign.Center,
                                 overflow = TextOverflow.Ellipsis,
                                 maxLines = 1,
-                                fontSize = 17.sp,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
                                 color = Color.White
                             )
                         }
@@ -276,20 +246,19 @@ fun ResultDialog(
                         )
                     }*/
 
-                    if(initialRatings == null){
+                    if (oldRating == null) {
                         Log.d(TAG, "initialRatings.value is null")
-                        Toast.makeText(context, "Couldn't fetch your old rating", Toast.LENGTH_SHORT).show()
-                    }
-                    else{
-                        if(newRating != null){
+                        Toast.makeText(
+                            context,
+                            "Couldn't fetch your old rating",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        if (newRating != null) {
                             RatingDisplay(
                                 gameType = gameType,
                                 newRating = newRating,
-                                oldRating = when (gameType) {
-                                    GameType.BULLET -> initialRatings!!.bulletRating
-                                    GameType.BLITZ -> initialRatings!!.blitzRating
-                                    GameType.RAPID -> initialRatings!!.rapidRating
-                                }
+                                oldRating = oldRating
                             )
                         }
                     }
@@ -310,19 +279,31 @@ fun ResultDialog(
                                 shape = RoundedCornerShape(percent = 20),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = colorResource(
-                                        R.color.secondary_dark
+                                        R.color.bg_pgn_btn
                                     )
                                 ),
-                                onClick = onRematchClicked
+                                onClick = {
+                                    pgnBtnClicked = true
+                                    onExportPGNClicked {
+                                        pgnBtnClicked = false
+                                    }
+                                }
                             ) {
-                                Text(
-                                    modifier = Modifier.padding(
-                                        horizontal = 10.dp,
-                                        vertical = 6.dp
-                                    ),
-                                    text = "Rematch",
-                                    fontSize = 15.sp
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        modifier = Modifier.padding(vertical = 15.dp),
+                                        text = "Export PGN",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
+                                    )
+                                    if (pgnBtnClicked) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp).padding(start = 5.dp),
+                                            color = Color.White,
+                                            trackColor = colorResource(R.color.secondary),
+                                            strokeWidth = 2.dp,
+                                        )
+                                    }
+                                }
                             }
                             Button(
                                 modifier = Modifier
@@ -336,15 +317,31 @@ fun ResultDialog(
                                 ),
                                 onClick = onNewGameClicked
                             ) {
-                                Text(
-                                    modifier = Modifier
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                                    text = "New $gameDuration min",
-                                    fontSize = 15.sp
-                                )
+                                Box{
+                                    Image(
+                                        modifier = Modifier
+                                            .size(50.dp)
+                                            .alpha(0.1f)
+                                            .align(Alignment.Center),
+                                        painter = painterResource(
+                                            when(gameType){
+                                                GameType.BULLET -> R.drawable.ic_bullet
+                                                GameType.BLITZ -> R.drawable.ic_blitz
+                                                GameType.RAPID -> R.drawable.ic_rapid
+                                            }
+                                        ),
+                                        contentDescription = null
+                                    )
+                                    Text(
+                                        modifier = Modifier
+                                            .padding(vertical = 15.dp)
+                                            .align(Alignment.Center),
+                                        text = "New $gameDuration min",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
+                                    )
+                                }
                             }
                         }
-
                         Button(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -352,34 +349,20 @@ fun ResultDialog(
                             shape = RoundedCornerShape(percent = 20),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = colorResource(
-                                    R.color.bg_pgn_btn
+                                    R.color.secondary_dark
                                 )
                             ),
-                            onClick = {
-                                pgnBtnClicked = true
-                                onExportPGNClicked {
-                                    pgnBtnClicked = false
-                                }
-                            }
+                            onClick = onViewOpponentProfileClicked
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    modifier = Modifier.padding(
-                                        horizontal = 10.dp,
-                                        vertical = 6.dp
-                                    ),
-                                    text = "Export PGN",
-                                    fontSize = 15.sp
-                                )
-                                if (pgnBtnClicked) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = Color.White,
-                                        trackColor = colorResource(R.color.secondary),
-                                        strokeWidth = 2.dp,
-                                    )
-                                }
-                            }
+                            Text(
+                                modifier = Modifier.padding(vertical = 15.dp),
+                                text =
+                                    if (playerBlack.username == username)
+                                        "View ${playerWhite.username}'s profile"
+                                    else
+                                        "View ${playerBlack.username}'s profile",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
+                            )
                         }
                     }
                 }

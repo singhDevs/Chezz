@@ -1,6 +1,7 @@
 package com.singhDevs.chezz.screens
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,9 +26,13 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.github.bhlangonijr.chesslib.Board
 import com.github.bhlangonijr.chesslib.CastleRight
 import com.github.bhlangonijr.chesslib.Piece
@@ -36,80 +42,88 @@ import com.github.bhlangonijr.chesslib.Square
 import com.github.bhlangonijr.chesslib.move.Move
 import com.google.gson.Gson
 import com.singhDevs.chezz.R
+import com.singhDevs.chezz.activities.ProfileActivity
 import com.singhDevs.chezz.components.ResultDialog
 import com.singhDevs.chezz.models.GameMode
 import com.singhDevs.chezz.models.GameOverResponse
 import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.models.Message
 import com.singhDevs.chezz.models.MessageTypes
-import com.singhDevs.chezz.models.ResultType
-import com.singhDevs.chezz.models.User
+import com.singhDevs.chezz.models.Ratings
+import com.singhDevs.chezz.models.UserWithoutCreds
+import com.singhDevs.chezz.network.User
 import com.singhDevs.chezz.utils.BasicUtils
 import com.singhDevs.chezz.utils.BasicUtils.getColor
 import com.singhDevs.chezz.utils.Constants
-import com.singhDevs.chezz.utils.Constants.alphabets
+import com.singhDevs.chezz.utils.Constants.FILES
 import com.singhDevs.chezz.utils.Constants.charToSquareMapping
 import com.singhDevs.chezz.viewmodels.ChessBoardViewModel
+import kotlinx.coroutines.delay
 
-private const val TAG = "WebSocketClient"
+private const val TAG = "ChessBoard"
 private var legalMoves: List<Move>? = null
-private var promotionMoves: MutableList<Move> = arrayListOf()
 
 @Composable
 fun ChessBoard(
-    modifier: Modifier,
-    user: com.singhDevs.chezz.network.User,
-    opponent: User,
+    context: Context,
+    viewModel: ChessBoardViewModel,
+    user: User,
+    opponent: UserWithoutCreds,
     color: Side = Side.WHITE,
     gameDuration: Int,
     gameType: GameType,
     gameMode: GameMode,
-    context: Context,
     deviceBoard: Board,
-    turn: Side,
-    changeTurn: () -> Unit,
     legalBoardMoves: MutableList<Move>?,
-    result: ResultType?,
-    cause: String?,
+    onPromotionSquareTapped: () -> Unit,
+    showPromotionOptions: Boolean,
+    onPromotionsOptionsDismiss: () -> Unit,
     gameOverResponse: GameOverResponse?,
-    viewModel: ChessBoardViewModel,
-    onMoveMade: (move: String) -> Unit,
+    oldRatings: Ratings?,
+    onMoveMade: (moveString: String) -> Unit,
     onNewGameClicked: () -> Unit,
     onExportPGNClicked: (toggleProgressIndicator: () -> Unit) -> Unit
 ) {
-    Log.d("Chezz", "result: $result")
     Log.d(TAG, "ChessBoard() is called")
-
     if (legalBoardMoves?.isEmpty() == true || legalBoardMoves == null) {
         Log.d(TAG, "Found legalMoves empty!")
         legalMoves = deviceBoard.legalMoves()
     } else {
         legalMoves = legalBoardMoves
     }
-    legalMoves?.forEach {
-        if (!Piece.NONE.equals(it.promotion)) {
-            promotionMoves.add(it)
-        }
-    }
 
+    val textMeasurer = rememberTextMeasurer()
+
+    var isFirstTap by remember { mutableStateOf(false) }
     var selectedSquare by remember { mutableStateOf<Square?>(null) }
     var selectedPiece by remember { mutableStateOf<PieceType?>(null) }
+    var moveModel by remember { mutableStateOf<com.singhDevs.chezz.models.Move?>(null) }
+    val promotedPiece by viewModel.promotedPiece.collectAsState()
+    var pendingMove by remember { mutableStateOf<com.singhDevs.chezz.models.Move?>(null) }
 
     var castleQueen by remember { mutableStateOf(false) }
     var castleKing by remember { mutableStateOf(false) }
     var showResultDialog by remember { mutableStateOf(false) }
     var isDialogDisplayed by remember { mutableStateOf(false) }
-    val playerWhite = if (color == Side.WHITE) User(
-        user.username, 1500,
-        1500,
-        1500,
-        user.photoUrl
+    val playerWhite = if (color == Side.WHITE) UserWithoutCreds(
+        user.id,
+        user.username,
+        user.photoUrl,
+        Ratings(
+            1500,
+            1500,
+            1500
+        )
     ) else opponent
-    val playerBlack = if (color == Side.BLACK) User(
-        user.username, 1500,
-        1500,
-        1500,
-        user.photoUrl
+    val playerBlack = if (color == Side.BLACK) UserWithoutCreds(
+        user.id,
+        user.username,
+        user.photoUrl,
+        Ratings(
+            1500,
+            1500,
+            1500
+        )
     ) else opponent
 
     LaunchedEffect(selectedSquare) {
@@ -131,6 +145,56 @@ fun ChessBoard(
     map[Piece.WHITE_QUEEN] = ImageBitmap.imageResource(id = R.drawable.wq)
     map[Piece.WHITE_PAWN] = ImageBitmap.imageResource(id = R.drawable.wp)
 
+    LaunchedEffect(promotedPiece != Piece.NONE) {
+        Log.d(TAG, "Entered promotedPiece LAUNCHED EFFECT")
+        if (promotedPiece != Piece.NONE && pendingMove != null && moveModel != null) {
+            Log.d(TAG, "Found a promoted piece! Final touches, and then sending to the server...")
+            if (selectedPiece == null) {
+                Log.d(TAG, "selectedPiece is null!")
+                return@LaunchedEffect
+            }
+            val promotionMoveModel =
+                pendingMove!!.copy(promotion = promotedPiece.fenSymbol.lowercase())
+            val moveMessage = Gson().toJson(
+                Message(
+                    type = MessageTypes.MOVE.value,
+                    move = promotionMoveModel,
+                    piece = Constants.pieceTypeToChar[selectedPiece]
+                )
+            )
+            onMoveMade(
+                BasicUtils.generateMoveString(
+                    moveModel!!.from,
+                    moveModel!!.to,
+                    Constants.pieceTypeToChar[selectedPiece]!!,
+                    if (color == Side.WHITE) 'w' else 'b',
+                    promotion = promotedPiece.fenSymbol.lowercase()
+                )
+            )
+            deviceBoard.doMove(
+                Move(
+                    charToSquareMapping[moveModel!!.from],
+                    charToSquareMapping[moveModel!!.to],
+                    promotedPiece
+                )
+            )
+
+            Log.d(
+                TAG,
+                "Sending move with promotion: ${promotedPiece.fenSymbol.lowercase()}"
+            )
+            Constants.webSocketClient.webSocket?.send(moveMessage)
+
+            Log.d(
+                TAG,
+                "deviceBoard.sideToMove - Side to play next after promotion: ${deviceBoard.sideToMove}"
+            )
+            viewModel.resetPromotedPiece()
+            selectedSquare = null
+            selectedPiece = null
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -143,6 +207,12 @@ fun ChessBoard(
                 .aspectRatio(1f)
                 .pointerInput(Unit) {
                     detectTapGestures { offset ->
+                        // Promotion options dialog is still open, closing it now...
+                        if (showPromotionOptions) {
+                            onPromotionsOptionsDismiss()
+                            return@detectTapGestures
+                        }
+
                         val squareWidth = size.width / 8
                         val x = (offset.x / squareWidth).toInt()
                         val y = (offset.y / squareWidth).toInt()
@@ -154,7 +224,9 @@ fun ChessBoard(
                         val tapSquare = if (color == Side.WHITE) {
                             charToSquareMapping[('a' + x) + (8 - y).toString()]
                         } else {
-                            charToSquareMapping[('a' + x) + (y + 1).toString()]
+                            val file = FILES.reversed()[x]
+                            val rank = y + 1
+                            charToSquareMapping["$file$rank"]
                         }
 
                         Log.d(TAG, "Calculated tapSquare: $tapSquare")
@@ -164,22 +236,26 @@ fun ChessBoard(
                         tapSquare?.let { square ->
                             val tappedPiece = deviceBoard.getPiece(square)
                             Log.d(TAG, "Tapped piece: $tappedPiece")
-
                             when {
                                 // First click - selecting a piece
                                 selectedSquare == null -> {
-                                    Log.d(TAG, "First click detected!")
                                     if (tappedPiece != null && tappedPiece.pieceSide != null && tappedPiece.pieceSide.name == color.name) {
                                         Log.d(TAG, "Selecting piece at $square")
+                                        Log.d(TAG, "Selected Square in lowercase:  ${selectedSquare.toString().lowercase()}")
                                         selectedSquare = square
                                         selectedPiece = tappedPiece.pieceType
+                                        isFirstTap = true
                                     }
                                 }
+
                                 // Second click - making a move
                                 else -> {
-                                    Log.d(TAG, "Second click detected!")
-                                    Log.d(TAG, "turn: $turn\tcolor: $color")
-                                    if (turn != color) {
+                                    isFirstTap = false
+                                    Log.d(
+                                        TAG,
+                                        "Second tap detected; deviceBoard.sideToMove: ${deviceBoard.sideToMove}\tcolor: $color"
+                                    )
+                                    if (deviceBoard.sideToMove != color) {
                                         Log.d(TAG, "Not our turn yet!")
                                         return@detectTapGestures
                                     }
@@ -192,7 +268,7 @@ fun ChessBoard(
                                             .toString()
                                             .lowercase()]
                                     )
-                                    val moveModel = com.singhDevs.chezz.models.Move(
+                                    moveModel = com.singhDevs.chezz.models.Move(
                                         from = selectedSquare!!
                                             .toString()
                                             .lowercase(),
@@ -201,129 +277,106 @@ fun ChessBoard(
                                             .lowercase()
                                     )
 
-                                    /*Log.d(
-                                        TAG,
-                                        "Need to find any promotion moves available: ${move.from} -> ${move.to}..."
-                                    )
-                                    if (promotionMoves.any { it.from == move.from && it.to == move.to }) {
-                                        Log.d(TAG, "Didn't find any promotion moves!")
-                                    }
-                                    else {
-                                        Log.d(TAG, "Found a promotion move!")
-
-                                        promotionDialogOffset = Pair(x, y)
-                                        shouldShowPromotionDialog = true
-
-                                        deviceBoard.doMove(
-                                            Move(
-                                                charToSquareMapping[moveModel.from],
-                                                charToSquareMapping[moveModel.to]
-                                            )
+                                    // Checking for a possible promotion move
+                                    if (legalMoves!!.any { it.from == move.from && it.to == move.to }
+                                        && legalMoves!!.filter { it.promotion != Piece.NONE }
+                                            .any { it.from == move.from && it.to == move.to }
+                                    ) {
+                                        pendingMove = com.singhDevs.chezz.models.Move(
+                                            from = selectedSquare!!.toString().lowercase(),
+                                            to = square.toString().lowercase(),
+                                            promotion = promotedPiece.name.lowercase()
                                         )
-                                        castleRight = deviceBoard.getCastleRight(color)
-                                        moveModel.kingSideCastle =
-                                            castleRight == CastleRight.KING_SIDE
-                                        moveModel.queenSideCastle =
-                                            castleRight == CastleRight.QUEEN_SIDE
-
-                                        Log.d(TAG, "castleRight: $castleRight")
-
-                                        val moveMessage = Gson().toJson(
-                                            Message(
-                                                type = MessageTypes.MOVE.value,
-                                                move = moveModel,
-                                                piece = Constants.pieceTypeToChar[selectedPiece]
-                                            )
-                                        )
-                                        onMoveMade(
-                                            moveModel.from,
-                                            moveModel.to,
-                                            Constants.pieceTypeToChar[selectedPiece]!!.toCharArray()[0]
-                                        )
-                                        Constants.webSocketClient.webSocket?.send(moveMessage)
-
-                                        selectedSquare = null
-                                        selectedPiece = null
-                                        promotionMoves.clear()
-                                        return@detectTapGestures
-                                    }*/
-
-                                    Log.d(
-                                        TAG,
-                                        "Need to find legal moves for: ${move.from} -> ${move.to}..."
-                                    )
-                                    if (legalMoves!!.any { it.from == move.from && it.to == move.to }) {
+                                        onPromotionSquareTapped()
+                                    } else if (legalMoves!!.any { it.from == move.from && it.to == move.to } && moveModel != null) {
                                         Log.d(TAG, "Found a Legal move!")
                                         Log.d(
                                             TAG,
                                             "Piece sent: $selectedPiece, char version: ${Constants.pieceTypeToChar[selectedPiece]}"
                                         )
-                                        deviceBoard.doMove(
-                                            Move(
-                                                charToSquareMapping[moveModel.from],
-                                                charToSquareMapping[moveModel.to]
-                                            )
-                                        )
 
-                                        val castleRight = deviceBoard.getCastleRight(color)
-                                        if (castleRight == CastleRight.NONE && (!castleKing && !castleQueen)) {
-                                            /*
-                                            WHITE CASTLING options --> e1c1 & e1g1
-                                            BLACK CASTLING options --> e8c8 & e1g8
-                                            */
-                                            if (color == Side.WHITE) {
-                                                if (moveModel.from == "e1" && moveModel.to == "c1") {
-                                                    castleQueen = true
-                                                    moveModel.queenSideCastle = true
-                                                } else if (moveModel.from == "e1" && moveModel.to == "g1") {
-                                                    castleKing = true
-                                                    moveModel.kingSideCastle = true
-                                                }
-                                            } else {
-                                                if (moveModel.from == "e8" && moveModel.to == "c8") {
-                                                    castleQueen = true
-                                                    moveModel.queenSideCastle = true
-                                                } else if (moveModel.from == "e8" && moveModel.to == "g8") {
-                                                    castleKing = true
-                                                    moveModel.kingSideCastle = true
-                                                }
-                                            }
-                                            onMoveMade(if (castleQueen) "O-O-O" else "O-O")
-                                        } else {
-                                            onMoveMade(
-                                                BasicUtils.generateMoveString(
-                                                    moveModel.from,
-                                                    moveModel.to,
-                                                    Constants.pieceTypeToChar[selectedPiece]!!.toCharArray()[0],
-                                                    if (color == Side.WHITE) 'w' else 'b'
+                                        moveModel?.let { moveModel ->
+                                            deviceBoard.doMove(
+                                                Move(
+                                                    charToSquareMapping[moveModel.from],
+                                                    charToSquareMapping[moveModel.to]
                                                 )
                                             )
-                                        }
 
-                                        Log.d(TAG, "castleRight: $castleRight")
+                                            val castleRight = deviceBoard.getCastleRight(color)
+                                            if (castleRight == CastleRight.NONE && (!castleKing && !castleQueen)) {
+                                                /**
+                                                 * WHITE CASTLING options --> e1c1 & e1g1
+                                                 * BLACK CASTLING options --> e8c8 & e1g8
+                                                 */
 
-                                        val moveMessage = Gson().toJson(
-                                            Message(
-                                                type = MessageTypes.MOVE.value,
-                                                move = moveModel,
-                                                piece = Constants.pieceTypeToChar[selectedPiece]
-                                            )
-                                        )
-                                        Constants.webSocketClient.webSocket?.send(moveMessage)
-                                        changeTurn()
-                                    } else {
-                                        Log.d(TAG, "Didn't find any Legal move!")
-                                        if (legalMoves!!.isEmpty()) {
-                                            Log.d(TAG, "Found legalMoves empty!")
-                                        } else {
-                                            Log.d(TAG, "Printing all legal moves...")
-                                            for (m in legalMoves!!) {
-                                                Log.d(TAG, "${m.from} -> ${m.to}")
+                                                if (color == Side.WHITE) {
+                                                    if (moveModel.from == "e1" && moveModel.to == "c1") {
+                                                        castleQueen = true
+                                                        moveModel.queenSideCastle = true
+                                                    } else if (moveModel.from == "e1" && moveModel.to == "g1") {
+                                                        castleKing = true
+                                                        moveModel.kingSideCastle = true
+                                                    }
+                                                } else {
+                                                    if (moveModel.from == "e8" && moveModel.to == "c8") {
+                                                        castleQueen = true
+                                                        moveModel.queenSideCastle = true
+                                                    } else if (moveModel.from == "e8" && moveModel.to == "g8") {
+                                                        castleKing = true
+                                                        moveModel.kingSideCastle = true
+                                                    }
+                                                }
+                                                onMoveMade(
+                                                    if (castleQueen) "O-O-O"
+                                                    else if (castleKing) "O-O"
+                                                    else {
+                                                        BasicUtils.generateMoveString(
+                                                            moveModel.from,
+                                                            moveModel.to,
+                                                            Constants.pieceTypeToChar[selectedPiece]!!,
+                                                            if (color == Side.WHITE) 'w' else 'b'
+                                                        )
+                                                    }
+                                                )
+                                            } else {
+                                                onMoveMade(
+                                                    BasicUtils.generateMoveString(
+                                                        moveModel.from,
+                                                        moveModel.to,
+                                                        Constants.pieceTypeToChar[selectedPiece]!!,
+                                                        if (color == Side.WHITE) 'w' else 'b'
+                                                    )
+                                                )
                                             }
+
+                                            Log.d(TAG, "castleRight: $castleRight")
+
+                                            val moveMessage = Gson().toJson(
+                                                Message(
+                                                    type = MessageTypes.MOVE.value,
+                                                    move = moveModel,
+                                                    piece = Constants.pieceTypeToChar[selectedPiece]
+                                                )
+                                            )
+                                            Constants.webSocketClient.webSocket?.send(moveMessage)
+                                            Log.d(
+                                                TAG,
+                                                "deviceBoard.sideToMove - Side to play next: ${deviceBoard.sideToMove}"
+                                            )
                                         }
+                                        selectedSquare = null
+                                        selectedPiece = null
+                                    } else {
+                                        Log.d(
+                                            TAG,
+                                            "We are looking for" + move.from.toString() + move.to.toString() + ", which we couldn't find in the legalMoves list!"
+                                        )
+                                        Log.d(TAG, "LegalMoves: ")
+                                        legalMoves!!.forEach { Log.d(TAG, it.toString()) }
+                                        selectedSquare = null
+                                        selectedPiece = null
                                     }
-                                    selectedSquare = null
-                                    selectedPiece = null
                                 }
                             }
                         }
@@ -349,23 +402,44 @@ fun ChessBoard(
 
                 for (i in 0..7) {
                     for (j in 0..7) {
-                        // Draw square
-                        drawRect(
-                            color = if ((row + col) % 2 == 0)
-                                getColor(context, R.color.light_square)
-                            else
-                                getColor(context, R.color.dark_square),
-                            topLeft = Offset(j * squareWidth, i * squareHeight),
-                            size = Size(squareWidth, squareHeight)
-                        )
+                        val file = FILES[col]
+                        val squareKey = "$file$row"
+                        val piece = deviceBoard.getPiece(charToSquareMapping[squareKey])
 
-//                        if(shouldShowPromotionDialog){
-//                            drawRect(
-//                                color = Color.White,
-//                                topLeft = Offset(j * squareWidth, i * squareHeight),
-//                                size = Size(squareWidth, squareHeight)
-//                            )
-//                        }
+                        val isKingAttacked = deviceBoard.isKingAttacked() &&
+                                deviceBoard.getSideToMove() == Side.WHITE &&
+                                piece == Piece.WHITE_KING
+
+                        if (isKingAttacked) {
+                            // Player's king is checked, make that square RED
+                            drawRect(
+                                color = getColor(context, R.color.sign_out_btn_color),
+                                topLeft = Offset(j * squareWidth, i * squareHeight),
+                                size = Size(squareWidth, squareHeight)
+                            )
+                        } else {
+                            // Draw squares normally
+                            val fileIndex = FILES.indexOf(file)
+                            val rankIndex = row - 1
+                            val isDarkSquare = (fileIndex + rankIndex) % 2 == 0
+
+                            if (isFirstTap && selectedSquare.toString().lowercase() == squareKey.lowercase()) {
+                                drawRect(
+                                    color = getColor(context, R.color.highlight_square),
+                                    topLeft = Offset(j * squareWidth, i * squareHeight),
+                                    size = Size(squareWidth, squareHeight)
+                                )
+                            } else {
+                                drawRect(
+                                    color = if (isDarkSquare)
+                                        getColor(context, R.color.dark_square)
+                                    else
+                                        getColor(context, R.color.light_square),
+                                    topLeft = Offset(j * squareWidth, i * squareHeight),
+                                    size = Size(squareWidth, squareHeight)
+                                )
+                            }
+                        }
 
                         // Draw highlight if square is selected
                         if (selectedSquare != null) {
@@ -381,26 +455,67 @@ fun ChessBoard(
                             }
                         }
 
+                        // If it is the left-most file, write the rank numbers
+                        if (col == 0) {
+                            val fileIndex = FILES.indexOf(file)
+                            val rankIndex = row - 1
+                            val isDarkSquare = (fileIndex + rankIndex) % 2 == 0
+
+                            drawText(
+                                text = (row).toString(),
+                                textMeasurer = textMeasurer,
+                                topLeft = Offset(j * squareWidth, i * squareHeight),
+                                style = TextStyle(
+                                    color =
+                                        if (isDarkSquare)
+                                            getColor(context, R.color.text_light_square)
+                                        else
+                                            getColor(context, R.color.text_dark_square),
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
+
+                        // If it is the bottom-most rank, write the file numbers
+                        if (row == 1) {
+                            val fileIndex = FILES.indexOf(file)
+                            val rankIndex = 0
+                            val isDarkSquare = (fileIndex + rankIndex) % 2 == 0
+
+                            drawText(
+                                text = file.toString(),
+                                textMeasurer = textMeasurer,
+                                topLeft = Offset(
+                                    (j + 1) * squareWidth - 20,  // Right side with padding
+                                    (i + 1) * squareHeight - 30  // Bottom with padding
+                                ),
+                                style = TextStyle(
+                                    color =
+                                        if (isDarkSquare)
+                                            getColor(context, R.color.text_light_square)
+                                        else
+                                            getColor(context, R.color.text_dark_square),
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
+
                         // Draw piece
-                        val piece = deviceBoard.getPiece(
-                            charToSquareMapping[alphabets[col] + row.toString()]
-                        )
                         piece?.let {
                             map[it]?.let { bitmap ->
                                 drawImage(
                                     image = bitmap,
                                     dstOffset = IntOffset(
-                                        (j * squareWidth).toInt(),
-                                        (i * squareHeight).toInt()
+                                        (j * squareWidth + 8).toInt(),
+                                        (i * squareHeight + 8).toInt()
                                     ),
                                     dstSize = IntSize(
-                                        squareWidth.toInt(),
-                                        squareHeight.toInt()
+                                        squareWidth.toInt() - 15,
+                                        squareHeight.toInt() - 15
                                     )
                                 )
                             }
                         }
-
                         col++
                     }
                     row--
@@ -409,23 +524,56 @@ fun ChessBoard(
             } else {
                 // Black perspective
                 var row = 1
-                var col = 0
+                var col = 7
 
                 for (i in 0..7) {
                     for (j in 0..7) {
-                        drawRect(
-                            color = if ((i + j) % 2 == 0)
-                                getColor(context, R.color.light_square)
-                            else
-                                getColor(context, R.color.dark_square),
-                            topLeft = Offset(j * squareWidth, i * squareHeight),
-                            size = Size(squareWidth, squareHeight)
-                        )
+                        val file = FILES[col]
+                        val squareKey = "$file$row"
+                        val piece = deviceBoard.getPiece(charToSquareMapping[squareKey])
+
+                        val isKingAttacked = deviceBoard.isKingAttacked() &&
+                                deviceBoard.getSideToMove() == Side.BLACK &&
+                                piece == Piece.BLACK_KING
+
+                        if (isKingAttacked) {
+                            // Player's king is checked, make that square RED
+                            drawRect(
+                                color = getColor(context, R.color.sign_out_btn_color),
+                                topLeft = Offset(j * squareWidth, i * squareHeight),
+                                size = Size(squareWidth, squareHeight)
+                            )
+                        } else {
+                            val fileIndex = FILES.indexOf(file)
+                            val rankIndex = row - 1
+                            val isDarkSquare = (fileIndex + rankIndex) % 2 == 0
+
+                            if (isFirstTap && selectedSquare.toString().lowercase() == squareKey.lowercase()) {
+                                drawRect(
+                                    color = getColor(context, R.color.highlight_square),
+                                    topLeft = Offset(j * squareWidth, i * squareHeight),
+                                    size = Size(squareWidth, squareHeight)
+                                )
+                            } else {
+                                drawRect(
+                                    color = if (isDarkSquare)
+                                        getColor(context, R.color.dark_square)
+                                    else
+                                        getColor(context, R.color.light_square),
+                                    topLeft = Offset(j * squareWidth, i * squareHeight),
+                                    size = Size(squareWidth, squareHeight)
+                                )
+                            }
+                        }
 
                         // Draw highlight if square is selected
                         if (currentSelected != null) {
-                            val selectedCol = selectedSquare.toString()[0] - 'a'
-                            val selectedRow = selectedSquare.toString()[1].digitToInt() - 1
+                            val selectedFile = currentSelected.toString()[0]
+                            val selectedRank = currentSelected.toString()[1].digitToInt()
+
+                            val selectedCol = FILES.reversed().indexOf(selectedFile.toString())
+                            val selectedRow = selectedRank - 1
+
                             if (i == selectedRow && j == selectedCol) {
                                 drawRect(
                                     color = Color(0xFF00FF00),
@@ -436,28 +584,70 @@ fun ChessBoard(
                             }
                         }
 
-                        val piece = deviceBoard.getPiece(
-                            charToSquareMapping[alphabets[col] + row.toString()]
-                        )
+                        // If it is the left-most file, write the rank numbers
+                        if (col == 7) {
+                            val fileIndex = FILES.indexOf(file)
+                            val rankIndex = row - 1
+                            val isDarkSquare = (fileIndex + rankIndex) % 2 == 0
+
+                            drawText(
+                                text = (row).toString(),
+                                textMeasurer = textMeasurer,
+                                topLeft = Offset(j * squareWidth, i * squareHeight),
+                                style = TextStyle(
+                                    color =
+                                        if (isDarkSquare)
+                                            getColor(context, R.color.text_light_square)
+                                        else
+                                            getColor(context, R.color.text_dark_square),
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
+
+                        // If it is the bottom-most rank, write the file numbers
+                        if (row == 8) {
+                            val fileIndex = FILES.indexOf(file)
+                            val rankIndex = row - 1
+                            val isDarkSquare = (fileIndex + rankIndex) % 2 == 0
+
+                            drawText(
+                                text = file.toString(),
+                                textMeasurer = textMeasurer,
+                                topLeft = Offset(
+                                    (j + 1) * squareWidth - 20,  // Right side with padding
+                                    (i + 1) * squareHeight - 30  // Bottom with padding
+                                ),
+                                style = TextStyle(
+                                    color =
+                                        if (isDarkSquare)
+                                            getColor(context, R.color.white)
+                                        else
+                                            getColor(context, R.color.black),
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
+
+                        // Draw piece
                         piece?.let {
                             map[it]?.let { bitmap ->
                                 drawImage(
                                     image = bitmap,
                                     dstOffset = IntOffset(
-                                        (j * squareWidth).toInt(),
-                                        (i * squareHeight).toInt()
+                                        (j * squareWidth + 8).toInt(),
+                                        (i * squareHeight + 8).toInt()
                                     ),
                                     dstSize = IntSize(
-                                        squareWidth.toInt(),
-                                        squareHeight.toInt()
+                                        squareWidth.toInt() - 15,
+                                        squareHeight.toInt() - 15
                                     )
                                 )
                             }
                         }
-
-                        col++
+                        col--
                     }
-                    col = 0
+                    col = 7
                     row++
                 }
             }
@@ -478,20 +668,28 @@ fun ChessBoard(
             return
         }
 
-        val newRatings = if(gameOverResponse.updatedRatings != null){
-             when (gameType) {
+        val newRating = if (gameOverResponse.updatedRatings != null) {
+            when (gameType) {
                 GameType.BULLET -> gameOverResponse.updatedRatings.bulletRating
                 GameType.RAPID -> gameOverResponse.updatedRatings.rapidRating
                 GameType.BLITZ -> gameOverResponse.updatedRatings.blitzRating
             }
         } else null
 
+        val oldRating = if (oldRatings != null) {
+            when (gameType) {
+                GameType.BULLET -> oldRatings.bulletRating
+                GameType.RAPID -> oldRatings.rapidRating
+                GameType.BLITZ -> oldRatings.blitzRating
+            }
+        } else null
 
         ResultDialog(
             context,
             gameOverResponse.result,
             gameOverResponse.cause,
-            newRatings,
+            newRating,
+            oldRating,
             gameType,
             gameDuration,
             playerWhite,
@@ -503,30 +701,16 @@ fun ChessBoard(
                 Log.d(TAG, "onDismissRequest called.")
                 isDialogDisplayed = true
                 showResultDialog = false
-
             },
-            onShareClicked = {
-
-            },
-            onRematchClicked = {
-
+            onViewOpponentProfileClicked = {
+                val intent = Intent(context, ProfileActivity::class.java)
+                intent.putExtra("userId", opponent.id)
+                context.startActivity(intent)
             },
             onNewGameClicked = onNewGameClicked,
             onExportPGNClicked = { toggleProgressIndicator ->
                 onExportPGNClicked(toggleProgressIndicator)
             }
         )
-
-        //Updating user ratings
-        if(gameOverResponse.updatedRatings != null && gameMode == GameMode.RATED){
-            Constants.user = com.singhDevs.chezz.network.User(
-                id = Constants.user.id,
-                email = Constants.user.email,
-                username = Constants.user.username,
-                photoUrl = Constants.user.photoUrl,
-                ratings = gameOverResponse.updatedRatings,
-                createdAt = Constants.user.createdAt
-            )
-        }
     }
 }

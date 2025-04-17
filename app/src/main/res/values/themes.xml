@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Chess" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Chezz" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Chezz.Splash" parent="Theme.Chezz">
+        <item name="android:windowSplashScreenBackground">@color/background</item>
+    </style>
 </resources>

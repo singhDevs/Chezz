@@ -1,37 +1,57 @@
 package com.singhDevs.chezz.components
 
+import android.content.Context
+import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.singhDevs.chezz.R
+import com.singhDevs.chezz.activities.GameHistoryActivity
+import com.singhDevs.chezz.activities.ReplayGameActivity
 import com.singhDevs.chezz.models.Game
+import com.singhDevs.chezz.models.GameMode
 import com.singhDevs.chezz.models.GameType
-import com.singhDevs.chezz.models.User
+import com.singhDevs.chezz.models.GameUserModel
 
 @Composable
-fun GameHistoryComposable(game: Game, username: String) {
+fun GameHistoryComposable(context: Context, game: Game, token: String, username: String) {
+    val surfaceColor = Color(0xFF1E1E1E)
+    val red = Color(0xFFFF6666).copy(alpha = 0.4f)
+    val green = Color(0xFF66FF99).copy(alpha = 0.4f)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colorResource(R.color.secondary_dark))
+            .background(surfaceColor, shape = CircleShape)
+            .clickable {
+                val intent = Intent(context, ReplayGameActivity::class.java)
+                intent.putExtra("username", username)
+                intent.putExtra("token", token)
+                intent.putExtra("game", game)
+                context.startActivity(intent)
+            },
     ) {
         Row(
             modifier = Modifier
@@ -44,18 +64,33 @@ fun GameHistoryComposable(game: Game, username: String) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                Image(
-                    modifier = Modifier.size(20.dp),
-                    painter =
-                    when(game.gameType){
-                        GameType.RAPID -> painterResource(R.drawable.ic_rapid)
-                        GameType.BLITZ -> painterResource(R.drawable.ic_blitz)
-                        GameType.BULLET -> painterResource(R.drawable.ic_bullet)
-                    },
-                    contentDescription = null
-                )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            when (game.gameMode) {
+                                GameMode.RATED -> red
+                                GameMode.CASUAL -> green
+                            },
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .padding(5.dp),
+                        painter =
+                            when (game.gameType) {
+                                GameType.RAPID -> painterResource(R.drawable.ic_rapid)
+                                GameType.BLITZ -> painterResource(R.drawable.ic_blitz)
+                                GameType.BULLET -> painterResource(R.drawable.ic_bullet)
+                            },
+                        contentDescription = null
+                    )
+                }
                 Row(
-                    modifier = Modifier.padding(start = 15.dp),
+                    modifier = Modifier.padding(start = 18.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val photoUrl =
@@ -64,7 +99,7 @@ fun GameHistoryComposable(game: Game, username: String) {
 
                     AsyncImage(
                         modifier = Modifier
-                            .size(45.dp)
+                            .size(42.dp)
                             .clip(RoundedCornerShape(percent = 20))
                             .border(1.dp, Color.Gray, RoundedCornerShape(percent = 20)),
                         model = photoUrl,
@@ -72,22 +107,24 @@ fun GameHistoryComposable(game: Game, username: String) {
                         error = painterResource(R.drawable.pfp_unavailable)
                     )
                     Text(
-                        modifier = Modifier.padding(start = 5.dp),
+                        modifier = Modifier.padding(start = 10.dp),
                         text =
-                        if (game.whitePlayer.username == username)
-                            game.blackPlayer.username
-                        else
-                            game.whitePlayer.username,
-                        fontSize = 23.sp,
+                            if (game.whitePlayer.username == username)
+                                game.blackPlayer.username
+                            else
+                                game.whitePlayer.username,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
                         color = Color.White
                     )
                 }
             }
+
+            Log.d("GameHistoryComposable", "game.winningUser: $game.winningUser")
             Image(
                 modifier = Modifier.size(25.dp),
                 painter = painterResource(
                     if (game.winningUser == username) R.drawable.ic_win
-                    else if (game.result == "d") R.drawable.ic_draw
+                    else if (game.result == "DRAW") R.drawable.ic_draw
                     else R.drawable.ic_minus
                 ),
                 contentDescription = null

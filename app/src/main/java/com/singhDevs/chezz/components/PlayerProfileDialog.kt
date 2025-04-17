@@ -31,6 +31,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -69,6 +70,7 @@ import java.util.Locale
 fun PlayerProfileDialog(
     context: Context,
     user: User,
+    token: String,
     games: List<Game>?,
     onDismiss: () -> Unit,
     onSignOut: () -> Unit
@@ -76,10 +78,9 @@ fun PlayerProfileDialog(
     // App color scheme
     val darkBackground = Color(0xFF1A1A1A)
     val darkerBackground = Color(0xFF121212)
-    val primaryAmber = Color(0xFFBF8F3F)
     val textColor = Color(0xFFE0E0E0)
+    val primaryAmber = Color(0xFFBF8F3F)
     val fieldBackground = Color(0xFF2A2A2A)
-    val accentBrown = Color(0xFF8B5A2B)
 
     val gradientBrush = Brush.verticalGradient(
         colors = listOf(
@@ -106,27 +107,7 @@ fun PlayerProfileDialog(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Close button
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                ) {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .align(Alignment.TopEnd)
-                            .clip(CircleShape)
-                            .background(fieldBackground)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = textColor
-                        )
-                    }
-                }
+                CloseButton(onDismiss = onDismiss)
 
                 Box(
                     modifier = Modifier
@@ -155,8 +136,7 @@ fun PlayerProfileDialog(
                 // Player name and info
                 Text(
                     text = user.username,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
                     color = textColor,
                     modifier = Modifier.padding(top = 6.dp)
                 )
@@ -164,7 +144,7 @@ fun PlayerProfileDialog(
                 val dateFormat = SimpleDateFormat("d MMMM, yyyy", Locale.getDefault())
                 Text(
                     text = "Joined on: ${dateFormat.format(user.createdAt)}",
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Light),
                     color = primaryAmber,
                     modifier = Modifier.padding(top = 5.dp, bottom = 16.dp)
                 )
@@ -174,25 +154,6 @@ fun PlayerProfileDialog(
                     thickness = 1.dp,
                     modifier = Modifier.padding(top = 8.dp)
                 )
-
-                // Stats row
-                /*Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatsItem(title = "148", subtitle = "Games", textColor = textColor)
-                    StatsItem(title = "98", subtitle = "Wins", textColor = textColor)
-                    StatsItem(title = "42", subtitle = "Losses", textColor = textColor)
-                    StatsItem(title = "8", subtitle = "Draws", textColor = textColor)
-                }*/
-
-                /*HorizontalDivider(
-                    color = fieldBackground,
-                    thickness = 1.dp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )*/
 
                 // Menu options
                 ProfileMenuItem(
@@ -215,6 +176,7 @@ fun PlayerProfileDialog(
                     onClick = {
                         val intent = Intent(context, GameHistoryActivity::class.java)
                         intent.putExtra("user", user)
+                        intent.putExtra("token", token)
                         intent.putExtra("gamesList", games as Serializable)
                         context.startActivity(intent)
                     }
@@ -275,8 +237,7 @@ fun PlayerProfileDialog(
                         modifier = Modifier.padding(vertical = 8.dp),
                         text = "SIGN OUT",
                         color = textColor,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     )
                 }
 
@@ -292,26 +253,7 @@ fun PlayerProfileDialog(
     }
 }
 
-fun generateProfileLink(userId: String) = "chezz://profile?userId=$userId"
-
-/*@Composable
-fun StatsItem(title: String, subtitle: String, textColor: Color) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = textColor
-        )
-        Text(
-            text = subtitle,
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
-    }
-}*/
+fun generateProfileLink(userId: String) = "https://singhDevs.github.io/chezz/profile?userId=$userId"
 
 fun openXProfile(context: Context) {
     val appUri = "twitter://user?screen_name=guranshSinghh".toUri()
@@ -357,7 +299,7 @@ fun ProfileMenuItem(
         Text(
             text = text,
             color = textColor,
-            fontSize = 16.sp,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
             modifier = Modifier.padding(start = 16.dp)
         )
         Spacer(modifier = Modifier.weight(1f))
@@ -399,9 +341,6 @@ fun HomeScreenWithProfileButton() {
             }
         }
 
-        // The rest of your home screen content
-
-        // Profile dialog
         if (showProfileDialog) {
             PlayerProfileDialog(
                 context = LocalContext.current,
@@ -413,6 +352,7 @@ fun HomeScreenWithProfileButton() {
                     createdAt = Date(),
                     ratings = Ratings()
                 ),
+                token = "",
                 games = emptyList(),
                 onDismiss = { showProfileDialog = false },
                 onSignOut = {

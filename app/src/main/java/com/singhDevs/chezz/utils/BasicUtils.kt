@@ -11,5 +11,8 @@ object BasicUtils {
         val minutes = (millis / (1000 * 60)) % 60
         return String.format("%02d:%02d", minutes, seconds)
     }
-    fun generateMoveString(from: String, to: String, piece: Char, color: Char) = "$color$piece$from$to"
+    fun generateMoveString(from: String, to: String, piece: String, color: Char, promotion: String? = null): String {
+        return if(promotion != null) "p:$to:$color:$promotion"
+        else "$color:$piece:$from:$to"
+    }
 }
