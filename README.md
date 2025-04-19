@@ -45,41 +45,57 @@ Chezz integrates the glicko2-ts library to manage player ratings in Rated matche
 For more details, you can explore the [glicko2-ts](https://github.com/singhDevs/glicko2-ts) repository.
 
 ## Screenshots
-### Home
-![home](https://github.com/user-attachments/assets/62f1973d-a708-4d12-8fe9-35c4d8e3dcf5)
+<img src="https://github.com/user-attachments/assets/6641ba14-3075-47b7-863e-1789771b637b" width="100" height="100" style="border-radius: 50%;">
 
-<br/><br/>
-### Rated or Casual options
-![rated or casual](https://github.com/user-attachments/assets/346b7147-5615-447e-a45c-4601c175f66b)
+# **Chezz**  _v1.2.4_
+**Chezz** is your modern chess companion — minimal, fast, and built for focused play. Whether you're a casual player or climbing the rated ladder, Chezz makes it easy to play, track, and improve your game.
 
-<br/><br/>
-### Time Control options
-![time modes](https://github.com/user-attachments/assets/feec2830-5480-4d50-8897-4bffa447271c)
+## Features
 
-<br/><br/>
-### Rating History Chart
-![Ratings Chart](https://github.com/user-attachments/assets/f07f16db-24f4-4f9c-94f6-0c8909b3fcfd)
+### 🎮 Play the Way You Like
 
-<br/><br/>
-### Matchmaking screen
-![waiting](https://github.com/user-attachments/assets/b038f355-9ce1-4fee-bdcd-6dba7709182c)
+• **Rated or Casual** — Choose your mode instantly. Red for Rated, Green for Casual.
+• **Game Types** — Play Bullet (1 min), Blitz (3–5 min), or Rapid (10 min).
+• **Smart Play Button** — One tap to start the right match.
 
-<br/><br/>
-### Game begins
-![game start](https://github.com/user-attachments/assets/7b14dcf1-0b80-42b7-bccc-ffbfad97032b)
+### ⏱️ In-Game, In Control
 
-<br/><br/>
-### Resignation dialog
-![resign](https://github.com/user-attachments/assets/5bc82c09-127e-440f-9bee-720007bb6feb)
+• Clean UI. Intuitive design. View players' ratings (in rated games) & time left with each player.
+• Scrollable move history during gameplay.
 
-<br/><br/>
-### Draw option
-![draw](https://github.com/user-attachments/assets/4d84dfb0-921e-45d7-a667-dabe70512601)
+### 🏁 Instant Game Summary
+• See game results and rating changes right after you finish.
+• Options to:
+– Start a new game
+– Export game in PGN format
+– View opponent's profile
 
-<br/><br/>
-### Game Over
-![Game Over](https://github.com/user-attachments/assets/7212fd39-6b77-4707-bd45-d52b239dd27b)
+### ♻️ Replay & Improve
+• Watch every past move with a visual board.
+• Analyze turn-by-turn and learn from mistakes.
+• Relive your best matches anytime.
 
-<br/><br/>
-### Exporting PGN
-![export pgn](https://github.com/user-attachments/assets/3554d12f-06cb-421f-8b92-e0b35af3a20b)
+### 📊 Performance at a Glance
+• Interactive graph showing rating trends across Bullet, Blitz, and Rapid.
+• Drag to view how your rating evolved over time.
+• Recent games feed for quick reviews.
+
+### 👤 Your Chess Identity
+• View your profile image, join date, and all ratings.
+• Full game history: played, won, lost, drawn.
+• Win probability stats to track your growth.
+• Share your profile via link with friends or online.
+
+## Why Chezz?
+No clutter. No distractions. Just you, your opponent, and the board. Chezz is built to be elegant, fast, and focused — perfect for improving your game and enjoying every move.
+
+## T&C and Privacy policy
+You can view Chezz's T&C and privacy polivy [here](https://singhdevs.github.io/chezz/T&C/).
+
+## Screenshots
+<img src="https://github.com/user-attachments/assets/49a2065b-18b5-4a0e-8a54-e067a1f7dfe0" width="350" height="600" style="border-radius: 12px; margin-right: 16px;" /> 
+<img src="https://github.com/user-attachments/assets/b6e74f3f-5084-4f6a-97e2-0d7032db2a07" width="350" height="600" style="border-radius: 12px;" />
+<img src="https://github.com/user-attachments/assets/997894dd-67f4-4ab0-998e-249ca1a1b796" width="350" height="600"/>
+<img src="https://github.com/user-attachments/assets/1b732b2e-58d2-42e2-bdb3-ce297ab07403" width="350" height="600"/>
+<img src="https://github.com/user-attachments/assets/a88d0f2f-b7fb-4d98-9958-b0a13e69237c" width="350" height="600"/>
+<img src="https://github.com/user-attachments/assets/b22764fc-fb48-4e50-9ed6-2126151dabaf" width="350" height="600"/>
