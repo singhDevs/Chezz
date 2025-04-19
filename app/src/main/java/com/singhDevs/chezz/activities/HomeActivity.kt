@@ -13,16 +13,20 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -40,6 +44,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -51,6 +57,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.singhDevs.chezz.ChezzApplication
 import com.singhDevs.chezz.R
 import com.singhDevs.chezz.auth.AuthManager
+import com.singhDevs.chezz.components.LoadingDialog
 import com.singhDevs.chezz.data.RatingsRepository
 import com.singhDevs.chezz.models.Game
 import com.singhDevs.chezz.network.GameService
@@ -78,6 +85,8 @@ class HomeActivity : ComponentActivity() {
     private lateinit var gameService: GameService
     private var token: String? = null
     private var user: User? = null
+
+    private var isConnected by mutableStateOf(true)
 
     private var games by mutableStateOf<List<Game>?>(null)
     private var bulletRatingHistory by mutableStateOf<List<RatingHistoryItem>?>(null)
@@ -127,15 +136,18 @@ class HomeActivity : ComponentActivity() {
 
         Constants.user = user!!
         gameService = RetrofitClient.gameServiceInstance
-        fetchGamesAndRatingsHistory()
+        fetchGamesAndRatingsHistory {
+            isConnected = false
+        }
 
         setContent {
             ChezzTheme {
                 var showProfileDialog by remember { mutableStateOf(false) }
                 var showLoadingScreen by remember { mutableStateOf(false) }
+
                 Scaffold(
                     topBar = {
-                        if (!showLoadingScreen) {
+                        if (!showLoadingScreen && isConnected) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp),
@@ -187,7 +199,36 @@ class HomeActivity : ComponentActivity() {
                     },
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
-                    if (!showLoadingScreen) {
+                    if (!isConnected) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(colorResource(R.color.game_background)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val composition by rememberLottieComposition(
+                                LottieCompositionSpec.RawRes(
+                                    R.raw.no_network
+                                )
+                            )
+                            Column(
+                                modifier = Modifier.padding(15.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                LottieAnimation(
+                                    modifier = Modifier.size(150.dp),
+                                    composition = composition,
+                                    iterations = LottieConstants.IterateForever
+                                )
+                                Text(
+                                    text = "Can't connect to the network",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = colorResource(R.color.text_light_square)
+                                )
+                            }
+                        }
+                    }
+                    if (!showLoadingScreen && isConnected) {
                         MainScreen(
                             modifier = Modifier.padding(innerPadding),
                             user = Constants.user,
@@ -224,12 +265,12 @@ class HomeActivity : ComponentActivity() {
                                     navigateToSignInActivity()
                                 }
                             },
-                            games = if (games == null) null else games!!,
+                            gamesList = if (games == null) null else games!!,
                             bulletRatingHistory = if (bulletRatingHistory == null) null else bulletRatingHistory!!,
                             blitzRatingHistory = if (blitzRatingHistory == null) null else blitzRatingHistory!!,
                             rapidRatingHistory = if (rapidRatingHistory == null) null else rapidRatingHistory!!
                         )
-                    } else {
+                    } else if (!showLoadingScreen && isConnected) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -265,28 +306,34 @@ class HomeActivity : ComponentActivity() {
         }
     }
 
-    private fun fetchGamesAndRatingsHistory() {
+    private fun fetchGamesAndRatingsHistory(onFailure: () -> Unit) {
         lifecycleScope.launch {
             Log.d(TAG, "Fetching games & rating history in onResume...")
-            val result = gameService.getGamesAndRatingsHistory("Bearer $token")
-            if (result.isSuccessful) {
-                games = result.body()?.games
-                bulletRatingHistory = result.body()?.bulletRatingHistory
-                blitzRatingHistory = result.body()?.blitzRatingHistory
-                rapidRatingHistory = result.body()?.rapidRatingHistory
+            try {
+                val result = gameService.getGamesAndRatingsHistory("Bearer $token")
+                if (result.isSuccessful) {
+                    games = result.body()?.games
+                    bulletRatingHistory = result.body()?.bulletRatingHistory
+                    blitzRatingHistory = result.body()?.blitzRatingHistory
+                    rapidRatingHistory = result.body()?.rapidRatingHistory
 
-                Log.d(TAG, "Games fetched successfully: $games")
-            } else {
-                Log.e(TAG, "Error fetching games & ratings history: ${result.message()}")
+                    Log.d(TAG, "Games fetched successfully: $games")
+                } else {
+                    Log.e(TAG, "Couldn't fetch games & ratings history: ${result.message()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching games & ratings history: ${e.message}")
+                onFailure()
             }
         }
     }
 
     override fun onResume() {
         super.onResume()
-        fetchGamesAndRatingsHistory()
+        fetchGamesAndRatingsHistory {
+            isConnected = false
+        }
     }
-
 
     private fun navigateToSignInActivity() {
         val intent = Intent(this@HomeActivity, SignInActivity::class.java)

@@ -1,13 +1,14 @@
 package com.singhDevs.chezz.network
 
 import com.google.gson.GsonBuilder
+import com.singhDevs.chezz.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    private const val BASE_URL = "http://3.111.219.119:3000"
+    private const val BASE_URL = BuildConfig.baseURL
     private val gson = GsonBuilder()
         .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         .create()

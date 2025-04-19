@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -52,6 +55,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.github.bhlangonijr.chesslib.Board
@@ -179,6 +183,8 @@ class GameActivity : ComponentActivity(), MessageActions {
             joinGame(token, user, gameType, gameMode, duration)
         }
 
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         setContent {
             ChezzTheme {
                 Scaffold(
@@ -226,6 +232,7 @@ class GameActivity : ComponentActivity(), MessageActions {
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(colorResource(R.color.game_background))
+                                .navigationBarsPadding()
                         ) {
                             LoadingDialog(
                                 modifier = Modifier.align(Alignment.Center),
@@ -267,6 +274,7 @@ class GameActivity : ComponentActivity(), MessageActions {
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(colorResource(R.color.game_background))
+                                .navigationBarsPadding()
                         ) {
                             Column(
                                 modifier = Modifier

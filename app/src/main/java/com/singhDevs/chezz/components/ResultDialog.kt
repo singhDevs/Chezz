@@ -74,6 +74,8 @@ fun ResultDialog(
     if (newRating != null) viewModel.updateRating(gameType, newRating)
     var pgnBtnClicked by remember { mutableStateOf(false) }
 
+    val textColor = Color(0xFFE0E0E0)
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
@@ -220,32 +222,6 @@ fun ResultDialog(
                         }
                     }
 
-
-                    /*Column(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = when (gameType) {
-                                GameType.RAPID -> "RAPID RATING"
-                                GameType.BLITZ -> "BLITZ RATING"
-                                GameType.BULLET -> "BULLET RATING"
-                            },
-                            fontSize = 14.sp,
-                            color = colorResource(R.color.text_secondary)
-                        )
-                        Text(
-                            text = when(gameType){
-                                GameType.BULLET -> Constants.user.ratings.bulletRating.toString()
-                                GameType.BLITZ -> Constants.user.ratings.blitzRating.toString()
-                                GameType.RAPID -> Constants.user.ratings.rapidRating.toString()
-                            },
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 30.sp,
-                            color = Color.White
-                        )
-                    }*/
-
                     if (oldRating == null) {
                         Log.d(TAG, "initialRatings.value is null")
                         Toast.makeText(
@@ -294,6 +270,7 @@ fun ResultDialog(
                                         modifier = Modifier.padding(vertical = 15.dp),
                                         text = "Export PGN",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
+                                        color = textColor
                                     )
                                     if (pgnBtnClicked) {
                                         CircularProgressIndicator(
@@ -338,6 +315,7 @@ fun ResultDialog(
                                             .align(Alignment.Center),
                                         text = "New $gameDuration min",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
+                                        color = textColor
                                     )
                                 }
                             }
@@ -362,6 +340,7 @@ fun ResultDialog(
                                     else
                                         "View ${playerBlack.username}'s profile",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
+                                color = textColor
                             )
                         }
                     }

@@ -109,7 +109,7 @@ class GameHistoryActivity : ComponentActivity() {
 fun RecentGames(games: List<Game>, token: String, user: User, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(surfaceColor)
     ) {
         LazyColumn(

@@ -31,12 +31,13 @@
     <color name="primary_dark">#242424</color>
     <color name="secondary_dark">#404040</color>
     <color name="see_more_btn">#232323</color>
+    <color name="mail_btn">#2C2C2C</color>
 
-    <color name="bg_rated_btn">#ec7d7d</color>
-    <color name="bg_rated">#AB2A2A</color>
+    <color name="bg_rated_btn">#fdac99</color>
+    <color name="bg_rated">#fe7253</color>
     <color name="bg_rated_txt">#400f0f</color>
-    <color name="bg_casual_btn">#76ff7b</color>
-    <color name="bg_casual">#00b809</color>
+    <color name="bg_casual_btn">#bbeeab</color>
+    <color name="bg_casual">#5ec848</color>
     <color name="bg_casual_txt">#003404</color>
 
     <color name="bg_pgn_btn">#4CAF50</color>

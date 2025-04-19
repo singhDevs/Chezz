@@ -21,25 +21,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.singhDevs.chezz.R
-import com.singhDevs.chezz.activities.GameHistoryActivity
 import com.singhDevs.chezz.activities.ReplayGameActivity
 import com.singhDevs.chezz.models.Game
 import com.singhDevs.chezz.models.GameMode
 import com.singhDevs.chezz.models.GameType
-import com.singhDevs.chezz.models.GameUserModel
 
 @Composable
 fun GameHistoryComposable(context: Context, game: Game, token: String, username: String) {
     val surfaceColor = Color(0xFF1E1E1E)
-    val red = Color(0xFFFF6666).copy(alpha = 0.4f)
-    val green = Color(0xFF66FF99).copy(alpha = 0.4f)
+//    val red = Color(0xFFFF6666).copy(alpha = 0.4f)
+//    val green = Color(0xFF66FF99).copy(alpha = 0.4f)
 
     Box(
         modifier = Modifier
@@ -69,8 +66,8 @@ fun GameHistoryComposable(context: Context, game: Game, token: String, username:
                         .size(40.dp)
                         .background(
                             when (game.gameMode) {
-                                GameMode.RATED -> red
-                                GameMode.CASUAL -> green
+                                GameMode.RATED -> colorResource(R.color.bg_rated).copy(alpha = 0.75f)
+                                GameMode.CASUAL -> colorResource(R.color.bg_casual).copy(alpha = 0.75f)
                             },
                             shape = CircleShape
                         ),

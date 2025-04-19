@@ -24,8 +24,8 @@ import com.singhDevs.chezz.BuildConfig
 import com.singhDevs.chezz.ChezzApplication
 import com.singhDevs.chezz.auth.AuthManager
 import com.singhDevs.chezz.data.RatingsRepository
-import com.singhDevs.chezz.models.GameType
 import com.singhDevs.chezz.network.AuthService
+import com.singhDevs.chezz.network.EmailSignInRequest
 import com.singhDevs.chezz.network.GoogleAuthRequest
 import com.singhDevs.chezz.network.RetrofitClient
 import com.singhDevs.chezz.screens.SignInScreen
@@ -69,6 +69,57 @@ class SignInActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     SignInScreen(
                         modifier = Modifier.padding(innerPadding),
+                        onSignInClick = { email, password ->
+                            lifecycleScope.launch {
+                                try {
+                                    val response = authService.signInWithEmail(EmailSignInRequest(email, password))
+                                    if (response.isSuccessful) {
+                                        val authResponse = response.body()
+                                        if (authResponse == null) {
+                                            Log.e(TAG, "Authentication failed: Response body is null")
+                                            showError("Authentication failed: Please try again later.")
+                                            return@launch
+                                        }
+
+                                        // Saving credentials in Encrypted Shared Preferences
+                                        authManager.saveUserData(authResponse.token, authResponse.user)
+                                        Constants.user = authResponse.user
+
+                                        // Saving ratings in Proto DataStore
+                                        Log.d(TAG, "Saving user ratings...")
+                                        signInViewModel.saveAllRatings(authResponse.user.ratings)
+
+                                        CoroutineScope(Dispatchers.IO).launch {
+                                            authViewModel.checkAuthState()
+                                            Log.d(
+                                                TAG,
+                                                "Auth State updated. Current auth state: ${authViewModel.authState.value}"
+                                            )
+                                        }
+                                        Log.d(
+                                            TAG,
+                                            "Authentication successful, Received token: ${authResponse.token}"
+                                        )
+                                        Toast.makeText(
+                                            this@SignInActivity,
+                                            "Signed in!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+
+                                        val intent = Intent(this@SignInActivity, HomeActivity::class.java)
+                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                        startActivity(intent)
+                                    } else {
+                                        showError("Authentication failed")
+                                        return@launch
+                                    }
+                                } catch (e: Exception) {
+                                    showError("Network error: Error signing you in")
+                                    Log.d(TAG, "Network error: ${e.message}")
+                                    return@launch
+                                }
+                            }
+                        },
                         onGoogleSignInClick = { initiateGoogleSignIn() },
                         onSignUpClick = {
                             val intent = Intent(this@SignInActivity, SignUpActivity::class.java)

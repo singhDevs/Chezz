@@ -2,61 +2,64 @@ package com.singhDevs.chezz.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.singhDevs.chezz.R
+import com.singhDevs.chezz.components.ForgotPasswordDialog
 
 @Composable
 fun SignInScreen(
     modifier: Modifier = Modifier,
-    onSignInClick: () -> Unit = {},
-    onGoogleSignInClick: () -> Unit = {},
-    onForgotPasswordClicked: () -> Unit = {},
+    onSignInClick: (email: String, password: String) -> Unit,
+    onGoogleSignInClick: () -> Unit,
     onSignUpClick: () -> Unit = {}
 ) {
-    // State variables
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
 
-    // Dark theme color scheme based on the app logo
     val darkBackground = Color(0xFF1A1A1A)
-    val darkerBackground = Color(0xFF121212)
     val primaryAmber = Color(0xFFBF8F3F)       // Gold/amber color from knight's accents
     val textColor = Color(0xFFE0E0E0)          // Light gray for text
-    val fieldBackground = Color(0xFF2A2A2A)    // Slightly lighter than background
     val accentBrown = Color(0xFF8B5A2B)        // Darker accent for buttons
+
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .padding(WindowInsets.navigationBars.asPaddingValues())
             .background(darkBackground)
     ) {
+        if (showForgotPasswordDialog) {
+            ForgotPasswordDialog(
+                context = LocalContext.current,
+                onDismiss = { showForgotPasswordDialog = false }
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -107,7 +110,7 @@ fun SignInScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 5.dp),
+                    .padding(bottom = 4.dp),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
@@ -139,7 +142,9 @@ fun SignInScreen(
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
-                            imageVector = if (passwordVisible) Icons.Default.Clear else Icons.Default.Check,
+                            painter = if (passwordVisible) painterResource(R.drawable.ic_eye_off) else painterResource(
+                                R.drawable.ic_eye
+                            ),
                             contentDescription = if (passwordVisible) "Hide Password" else "Show Password",
                             tint = primaryAmber
                         )
@@ -163,27 +168,24 @@ fun SignInScreen(
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // Forgot password text
-            Box(modifier = Modifier.fillMaxWidth()) {
-                TextButton(
-                    onClick = onForgotPasswordClicked,
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                ) {
-                    Text(
-                        text = "Forgot Password?",
-                        color = primaryAmber,
-                        fontSize = 14.sp
-                    )
-                }
+            Box(modifier = Modifier.fillMaxWidth()){
+                Text(
+                    text = "Forgot Password?",
+                    color = primaryAmber,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Normal),
+                    modifier = Modifier
+                        .padding(top = 5.dp)
+                        .align(Alignment.TopEnd)
+                        .clickable { showForgotPasswordDialog = true }
+                )
             }
 
-            // Sign in button with gradient background
             Button(
-                onClick = onSignInClick,
+                onClick = { onSignInClick(email, password) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .padding(top = 5.dp),
+                    .padding(top = 12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = accentBrown
                 ),
@@ -298,18 +300,10 @@ fun SignInScreen(
 fun ChessboardPattern(
     lightSquareColor: Color,
     darkSquareColor: Color
-): androidx.compose.ui.graphics.Brush {
+): Brush {
     return Brush.verticalGradient(
         colors = listOf(Color.Transparent, darkSquareColor),
         startY = 0f,
         endY = Float.POSITIVE_INFINITY
     )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SignInScreenDarkPreview() {
-    MaterialTheme {
-        SignInScreen()
-    }
 }

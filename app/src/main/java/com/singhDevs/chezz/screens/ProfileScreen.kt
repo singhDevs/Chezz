@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import coil3.compose.rememberAsyncImagePainter
 import com.singhDevs.chezz.R
 import com.singhDevs.chezz.activities.ProfileActivity
@@ -139,8 +140,9 @@ fun ProfileHeader(user: User) {
             )
 
             // Profile image
-            Image(
-                painter = rememberAsyncImagePainter(model = user.photoUrl),
+            AsyncImage(
+                model = user.photoUrl,
+                error = painterResource(R.drawable.pfp_unavailable),
                 contentDescription = "Profile Picture",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

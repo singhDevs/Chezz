@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.dsl.NdkOptions
 import java.util.Properties
 
 plugins {
@@ -23,6 +24,7 @@ android {
         val googleWebClientId = properties.getProperty("google_web_client_id") ?: ""
         val googleAndroidClientId = properties.getProperty("google_android_client_id") ?: ""
         val googleSignInNonce = properties.getProperty("google_sign_in_nonce") ?: ""
+        val baseURL = properties.getProperty("baseURL") ?: ""
 
         buildConfigField(
             type = "String",
@@ -39,12 +41,17 @@ android {
             name = "googleSignInNonce",
             value = googleSignInNonce
         )
+        buildConfigField(
+            type = "String",
+            name = "baseURL",
+            value = baseURL
+        )
 
         applicationId = "com.singhDevs.chezz"
         minSdk = 31
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 7
+        versionName = "1.2.4"
         android.buildFeatures.buildConfig = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -82,6 +89,9 @@ android {
         }
 
         release {
+            ndk {
+                debugSymbolLevel = NdkOptions.DebugSymbolLevel.FULL.toString()
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

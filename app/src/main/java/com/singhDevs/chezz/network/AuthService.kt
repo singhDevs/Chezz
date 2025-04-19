@@ -16,9 +16,20 @@ interface AuthService {
     suspend fun authenticateWithGoogle(
         @Body request: GoogleAuthRequest
     ): Response<AuthResponse>
+
+    @POST("/v1/auth/email/signin")
+    suspend fun signInWithEmail(
+        @Body request: EmailSignInRequest
+    ): Response<AuthResponse>
+
+    @POST("/v1/auth/email/signup")
+    suspend fun signUpWithEmail(
+        @Body request: EmailSignInRequest
+    ): Response<AuthResponse>
 }
 
 data class GoogleAuthRequest(val idToken: String)
+data class EmailSignInRequest(val email: String, val password: String)
 data class AuthResponse(val token: String, val message: String, val user: User)
 
 @Parcelize

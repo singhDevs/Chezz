@@ -18,8 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Person
@@ -27,7 +26,6 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -243,7 +241,7 @@ fun PlayerProfileDialog(
 
                 // App version
                 Text(
-                    text = "Chezz  v1.0.0",
+                    text = "Chezz  v1.2.4",
                     color = Color.Gray,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(top = 16.dp)
@@ -304,7 +302,7 @@ fun ProfileMenuItem(
         )
         Spacer(modifier = Modifier.weight(1f))
         Icon(
-            imageVector = Icons.Default.KeyboardArrowRight,
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = Color.Gray,
             modifier = Modifier.size(20.dp)

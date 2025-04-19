@@ -53,7 +53,7 @@ val ChezzTypography = Typography(
     titleSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Light,
-        fontSize = 15.sp
+        fontSize = 14.sp
     ),
 
     /**
@@ -112,6 +112,6 @@ val ChezzTypography = Typography(
     bodyMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Light,
-        fontSize = 17.sp
+        fontSize = 16.sp
     ),
 )

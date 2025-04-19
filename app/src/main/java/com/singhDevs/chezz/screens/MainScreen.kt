@@ -91,7 +91,7 @@ fun MainScreen(
     dismissProfileDialog: () -> Unit,
     onPlayGameClicked: (gameDuration: Int, gameMode: GameMode, gameType: GameType) -> Unit,
     onSigningOut: () -> Unit,
-    games: List<Game>? = null,
+    gamesList: List<Game>? = null,
     bulletRatingHistory: List<RatingHistoryItem>? = null,
     blitzRatingHistory: List<RatingHistoryItem>? = null,
     rapidRatingHistory: List<RatingHistoryItem>? = null
@@ -105,6 +105,12 @@ fun MainScreen(
     var gameMode by remember { mutableStateOf(GameMode.RATED) }
     var gameType by remember { mutableStateOf(GameType.BLITZ) }
     var shouldShowMoreGamesTitle by remember { mutableStateOf(false) }
+
+    val games =
+        gamesList?.filter {
+            it.blackPlayerId != null && it.blackPlayer != null && it.whitePlayerId != null && it.whitePlayer != null &&
+                    it.gameMode != null && it.gameType != null
+        } ?: gamesList
 
     val surfaceColor = Color(0xFF1E1E1E)
 
@@ -306,7 +312,8 @@ fun MainScreen(
                                             )
                                         ),
                                         onClick = {
-                                            val intent = Intent(context, GameHistoryActivity::class.java)
+                                            val intent =
+                                                Intent(context, GameHistoryActivity::class.java)
                                             intent.putExtra("user", user)
                                             intent.putExtra("token", token)
                                             intent.putExtra("gamesList", games as Serializable)
