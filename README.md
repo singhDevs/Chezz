@@ -1,17 +1,45 @@
 <img src="https://github.com/user-attachments/assets/6641ba14-3075-47b7-863e-1789771b637b" width="100" height="100" style="border-radius: 50%;">
 
 # Chezz
-A real-time multiplayer Chess game android app built using web-sockets.
+A real-time multiplayer Chess game android app built using web-sockets.<br>
+**Note:** _(Phone screenshots at the bottom)_
 
 ## Releases
 Chezz v1.2.4 has been released! Downalod the APK from the release. Check it out [here](https://github.com/singhDevs/Chezz/releases/tag/v1.2.4).
 
 ## Features
-- **Real-Time Multiplayer Game**: Play live chess games with opponents around the world. Matches are timed and conclude on checkmate, draw, or timer expiry.
-**Secure & Seamless**: Integrated Google sign-in ensures secure access. All game data is stored in PostgreSQL, allowing you to access games across devices.
-**Flexible Game Modes**: Choose between Rated and Casual matches. In-game options include resigning and offering draws.
-**Dynamic Skill Tracking**: Rated matches use a Glicko-2 rating system to accurately reflect your skill level, powered by the glicko2-ts library.
-**Game Sharing**: Export your games in PGN format for detailed analysis or to share with friends.
+### 🎮 Play the Way You Like
+
+-  **Rated or Casual** — Choose your mode instantly. Red for Rated, Green for Casual.
+-  **Game Types** — Play Bullet (1 min), Blitz (3–5 min), or Rapid (10 min).
+-  **Smart Play Button** — One tap to start the right match.
+
+### ⏱️ In-Game, In Control
+- Clean UI. Intuitive design. View players' ratings (in rated games) & time left with each player.
+- Scrollable move history during gameplay.
+
+### 🏁 Instant Game Summary
+- See game results and rating changes right after you finish.
+- Options to:
+  - Start a new game
+  - Export game in PGN format
+  - View opponent's profile
+
+### ♻️ Replay & Improve
+- Watch every past move with a visual board.
+- Analyze turn-by-turn and learn from mistakes.
+- Relive your best matches anytime.
+
+### 📊 Performance at a Glance
+- Interactive graph showing rating trends across Bullet, Blitz, and Rapid.
+- Drag to view how your rating evolved over time.
+- Recent games feed for quick reviews.
+
+### 👤 Your Chess Identity
+- View your profile image, join date, and all ratings.
+- Full game history: played, won, lost, drawn.
+- Win probability stats to track your growth.
+- Share your profile via link with friends or online.
 
 ## Time Control Modes
 Chezz offers several time control modes to cater to different chess play styles:
@@ -43,48 +71,6 @@ Chezz integrates the glicko2-ts library to manage player ratings in Rated matche
 - **Open Source Availability**: The glicko2-ts library is available for anyone to use, making it easy to integrate advanced dynamic rating systems into your own projects.
 
 For more details, you can explore the [glicko2-ts](https://github.com/singhDevs/glicko2-ts) repository.
-
-## Screenshots
-<img src="https://github.com/user-attachments/assets/6641ba14-3075-47b7-863e-1789771b637b" width="100" height="100" style="border-radius: 50%;">
-
-# **Chezz**  _v1.2.4_
-**Chezz** is your modern chess companion — minimal, fast, and built for focused play. Whether you're a casual player or climbing the rated ladder, Chezz makes it easy to play, track, and improve your game.
-
-## Features
-
-### 🎮 Play the Way You Like
-
-• **Rated or Casual** — Choose your mode instantly. Red for Rated, Green for Casual.
-• **Game Types** — Play Bullet (1 min), Blitz (3–5 min), or Rapid (10 min).
-• **Smart Play Button** — One tap to start the right match.
-
-### ⏱️ In-Game, In Control
-
-• Clean UI. Intuitive design. View players' ratings (in rated games) & time left with each player.
-• Scrollable move history during gameplay.
-
-### 🏁 Instant Game Summary
-• See game results and rating changes right after you finish.
-• Options to:
-– Start a new game
-– Export game in PGN format
-– View opponent's profile
-
-### ♻️ Replay & Improve
-• Watch every past move with a visual board.
-• Analyze turn-by-turn and learn from mistakes.
-• Relive your best matches anytime.
-
-### 📊 Performance at a Glance
-• Interactive graph showing rating trends across Bullet, Blitz, and Rapid.
-• Drag to view how your rating evolved over time.
-• Recent games feed for quick reviews.
-
-### 👤 Your Chess Identity
-• View your profile image, join date, and all ratings.
-• Full game history: played, won, lost, drawn.
-• Win probability stats to track your growth.
-• Share your profile via link with friends or online.
 
 ## Why Chezz?
 No clutter. No distractions. Just you, your opponent, and the board. Chezz is built to be elegant, fast, and focused — perfect for improving your game and enjoying every move.
