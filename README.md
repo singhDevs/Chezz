@@ -49,6 +49,25 @@ Chezz offers several time control modes to cater to different chess play styles:
 
 These modes allow players to choose the pace that best fits their skill level and preference, whether you prefer fast, intense matches or a more measured, strategic game.
 
+## 📲 How to Install
+1. **Visit the latest release**: [Chezz v1.2.4](https://github.com/singhDevs/Chezz/releases/tag/v1.2.4)
+2. **Download the APK**  
+   - Scroll down to the **Assets** section below.  
+   - Click to download the file: `Chezz-v1.2.4.apk`.
+
+3. **Enable installation from unknown sources**  
+   - On your Android device, go to:  
+     `Settings → Apps & notifications → Special app access → Install unknown apps`  
+     (or `Settings → Security`, depending on your Android version).  
+   - Select the app you used to download the APK (e.g., Chrome or Files) and enable **"Allow from this source."**
+
+4. **Install the APK**  
+   - Open your Downloads folder and tap the `Chezz-v1.2.4.apk` file.  
+   - Confirm any prompts to complete the installation.
+
+5. **Launch Chezz**  
+   - Open the app from your home screen or app drawer and start playing! ♟️
+
 ## Gameplay
 1. **Sign In**: Log in using your Google account to securely access your game data.
 2. **Start a Match**: Choose between Rated or Casual matches. For rated games, your skill level will be tracked using the Glicko-2 system. Choose the game duration you want to play with.
