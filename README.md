@@ -3,6 +3,9 @@
 # Chezz
 A real-time multiplayer Chess game android app built using web-sockets.
 
+## Releases
+Chezz v1.0.0 Alpha has been released! Downalod the APK from the release. Check it out [here](https://github.com/singhDevs/Chezz/releases/tag/alpha).
+
 ## Features
 - **Real-Time Multiplayer Game**: Play live chess games with opponents around the world. Matches are timed and conclude on checkmate, draw, or timer expiry.
 **Secure & Seamless**: Integrated Google sign-in ensures secure access. All game data is stored in PostgreSQL, allowing you to access games across devices.
