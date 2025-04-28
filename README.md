@@ -5,6 +5,7 @@ A real-time multiplayer Chess game android app built using web-sockets.<br>
 [Jump to Phone screenshots](https://github.com/singhDevs/Chezz?tab=readme-ov-file#screenshots)
 
 ## Demo Video 📽️
+Click on this video to watch it on YouTube.<br><br>
 [![Watch the Demo!](https://i.ytimg.com/an_webp/9_9fl1Xh7HU/mqdefault_6s.webp?du=3000&sqp=COyvvMAG&rs=AOn4CLC4UqNI1C3UGkDAK7aZoZfqXytzqw)](https://www.youtube.com/watch?v=9_9fl1Xh7HU)
 
 ## Releases
